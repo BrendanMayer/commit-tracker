@@ -92,12 +92,12 @@ function commitCard(c) {
       <div>
         <div class="commit-top">
           <span class="repo">${repo}</span>
-          <span class="meta">${branch}</span>
+          <span class="repo">${branch}</span>
           <span class="meta">${timeAgo(c.timestamp)}</span>
         </div>
         <div class="message">${msg}</div>
         <div class="commit-bottom">
-          <span>Author: ${author}</span>
+          <span>${author}</span>
           
         </div>
       </div>

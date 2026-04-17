@@ -1,0 +1,4 @@
+.venv/
+.env
+commits.db
+__pycache__/

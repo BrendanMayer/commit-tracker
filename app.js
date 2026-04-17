@@ -98,7 +98,7 @@ function commitCard(c) {
         <div class="message">${msg}</div>
         <div class="commit-bottom">
           <span>Author: ${author}</span>
-          <a class="sha-link" href="${commitUrl}" target="_blank" rel="noopener noreferrer">${shaShort}</a>
+          
         </div>
       </div>
     </article>

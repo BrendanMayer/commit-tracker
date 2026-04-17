@@ -6,6 +6,7 @@
   --muted: #8f9ba7;
   --green: #7cab43;
   --green-2: #89c24b;
+  --yellow: #E6B753;
   --border: #2c353d;
 }
 
@@ -179,6 +180,12 @@ button:hover {
 
 .repo {
   color: var(--green-2);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.branch {
+  color: var(--yellow);
   font-weight: 800;
   text-decoration: none;
 }

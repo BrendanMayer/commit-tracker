@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Commit Tracker</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <div>
+        <h1 id="headline">Loading commits...</h1>
+        <p class="sub" id="subline">Waiting for the machinery to do its thing.</p>
+      </div>
+      <div class="live-pill" id="live-pill">LIVE</div>
+    </header>
+
+    <section class="panel">
+      <div class="chart-wrap">
+        <div id="chart" class="chart"></div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-label">Tracked commits</div>
+          <div class="stat-value" id="stat-total-commits">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Repositories</div>
+          <div class="stat-value" id="stat-total-repos">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Contributors</div>
+          <div class="stat-value" id="stat-total-authors">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-header">
+        <h2>Recent commits</h2>
+        <button id="refresh-btn">Refresh</button>
+      </div>
+      <div id="feed" class="feed"></div>
+    </section>
+  </div>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 # Commit Tracker
 
-A lightweight web dashboard for tracking commits across GitHub repositories in real time inspired by the facepunch development team at ```https://commits.facepunch.com```.
+A lightweight web dashboard for tracking commits across GitHub repositories in real time inspired by the facepunch development team at ```https://commits.facepunch.com```
+My own implementation of this dashboard can be viewed at ```https://brendanmayer.github.io/commit-tracker/```
 
 This project uses GitHub webhooks to capture new commits as they happen, stores them on a backend service, and displays them through a simple frontend hosted on GitHub Pages.
 

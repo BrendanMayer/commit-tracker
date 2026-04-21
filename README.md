@@ -127,9 +127,9 @@ To enable commit tracking, configure a webhook in your GitHub repository:
 
 ## Possible improvements
 
-* filtering commits by repository or author
+* filtering commits by repository or author - I decided to do this myself already
 * real-time updates using WebSockets instead of polling
-* pagination and better data handling for larger datasets
+* pagination and better data handling for larger datasets - I decided to do this too
 * authentication or private dashboards
 
 ---

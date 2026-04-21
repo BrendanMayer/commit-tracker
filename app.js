@@ -22,7 +22,6 @@ let commits = [];
 let stats = null;
 let pagination = null;
 let source = null;
-let stickyObserver = null;
 
 const state = {
   repo: "",
@@ -300,6 +299,7 @@ async function loadData() {
   renderFeed();
   renderPagination();
   updateUrl();
+  setupStickyFooterVisibility();
 }
 
 function connectStream() {
@@ -407,28 +407,27 @@ function addCommitLive(commit) {
 function setupStickyFooterVisibility() {
   if (!commitsPanelEl || !panelFooterEl) return;
 
-  if (stickyObserver) {
-    stickyObserver.disconnect();
+  function updateStickyFooter() {
+    const panelRect = commitsPanelEl.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+    const panelTopReached = panelRect.top <= 24;
+    const panelStillVisible = panelRect.bottom >= 140;
+
+    const shouldStick = panelTopReached && panelStillVisible;
+
+    panelFooterEl.classList.toggle("is-sticky", shouldStick);
   }
 
-  stickyObserver = new IntersectionObserver(
-    (entries) => {
-      const entry = entries[0];
-      const rect = entry.boundingClientRect;
-      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+  updateStickyFooter();
 
-      const commitsOwnMostOfViewport =
-        rect.top < viewportHeight * 0.25 && rect.bottom > viewportHeight * 0.6;
+  window.removeEventListener("scroll", window.__commitTrackerStickyHandler);
+  window.removeEventListener("resize", window.__commitTrackerStickyHandler);
 
-      panelFooterEl.classList.toggle("is-sticky", commitsOwnMostOfViewport);
-    },
-    {
-      root: null,
-      threshold: [0, 0.25, 0.5, 0.75, 1]
-    }
-  );
+  window.__commitTrackerStickyHandler = updateStickyFooter;
 
-  stickyObserver.observe(commitsPanelEl);
+  window.addEventListener("scroll", window.__commitTrackerStickyHandler, { passive: true });
+  window.addEventListener("resize", window.__commitTrackerStickyHandler);
 }
 
 feedEl.addEventListener("click", async (event) => {
@@ -506,9 +505,6 @@ nextPageBtn.addEventListener("click", async () => {
   }
 });
 
-window.addEventListener("resize", () => {
-  setupStickyFooterVisibility();
-});
 
 (async function init() {
   readStateFromUrl();
@@ -516,7 +512,6 @@ window.addEventListener("resize", () => {
   try {
     await loadData();
     connectStream();
-    setupStickyFooterVisibility();
   } catch (err) {
     console.error(err);
     feedEl.innerHTML = `<div class="empty">Failed to load data from backend.</div>`;

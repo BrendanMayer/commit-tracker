@@ -8,21 +8,17 @@ const totalReposEl = document.getElementById("stat-total-repos");
 const totalAuthorsEl = document.getElementById("stat-total-authors");
 const refreshBtn = document.getElementById("refresh-btn");
 const clearFiltersBtn = document.getElementById("clear-filters-btn");
-const repoFilterEl = document.getElementById("repo-filter");
-const branchFilterEl = document.getElementById("branch-filter");
-const ownerFilterEl = document.getElementById("owner-filter");
-const contributorFilterEl = document.getElementById("contributor-filter");
 const prevPageBtn = document.getElementById("prev-page-btn");
 const nextPageBtn = document.getElementById("next-page-btn");
 const pageIndicatorEl = document.getElementById("page-indicator");
 const paginationSummaryEl = document.getElementById("pagination-summary");
+const activeFiltersEl = document.getElementById("active-filters");
 
 const PAGE_SIZE = 20;
 
 let commits = [];
 let stats = null;
 let pagination = null;
-let filterOptions = null;
 let source = null;
 
 const state = {
@@ -75,6 +71,22 @@ function buildQuery(params = {}) {
   return search.toString();
 }
 
+function updateUrl() {
+  const query = buildQuery();
+  const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+  window.history.replaceState({}, "", nextUrl);
+}
+
+function readStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  state.repo = params.get("repo") || "";
+  state.branch = params.get("branch") || "";
+  state.owner = params.get("owner") || "";
+  state.contributor = params.get("contributor") || "";
+  state.page = Math.max(1, Number(params.get("page") || 1));
+  state.page_size = Math.max(1, Number(params.get("page_size") || PAGE_SIZE));
+}
+
 function commitMatchesState(commit) {
   const contributor = commit.contributor || commit.sender_login || commit.author_name || commit.author_email || "";
 
@@ -122,7 +134,7 @@ function renderChart() {
   const max = Math.max(1, ...tail.map(d => d.count));
 
   if (!tail.length) {
-    chartEl.innerHTML = `<div class="empty">No commits match this filter set. A rare moment of stillness.</div>`;
+    chartEl.innerHTML = `<div class="empty">No commits match this filter set.</div>`;
     return;
   }
 
@@ -135,14 +147,36 @@ function renderChart() {
   }
 }
 
+function renderActiveFilters() {
+  const filters = [];
+
+  if (state.repo) filters.push({ label: "Repo", value: state.repo, key: "repo" });
+  if (state.branch) filters.push({ label: "Branch", value: state.branch, key: "branch" });
+  if (state.owner) filters.push({ label: "Owner", value: state.owner, key: "owner" });
+  if (state.contributor) filters.push({ label: "Contributor", value: state.contributor, key: "contributor" });
+
+  if (!filters.length) {
+    activeFiltersEl.innerHTML = `<span class="muted-inline">Click a repo, branch, or contributor on a card to filter.</span>`;
+    return;
+  }
+
+  activeFiltersEl.innerHTML = filters.map(filter => `
+    <button
+      type="button"
+      class="filter-chip active"
+      data-clear-filter="${escapeHtml(filter.key)}"
+      title="Clear ${escapeHtml(filter.label)} filter"
+    >
+      ${escapeHtml(filter.label)}: ${escapeHtml(filter.value)} ×
+    </button>
+  `).join("");
+}
+
 function commitCard(c) {
   const author = escapeHtml(c.contributor || c.author_name || c.sender_login || "Unknown");
   const repo = escapeHtml(c.repo_full_name || "Unknown repo");
   const branch = escapeHtml(c.branch || "unknown-branch");
-  const owner = escapeHtml(c.repo_owner || "unknown-owner");
   const msg = escapeHtml(c.message || "");
-  const shaShort = escapeHtml((c.sha || "").slice(0, 7));
-  const commitUrl = escapeHtml(c.url || "#");
   const avatar = escapeHtml(c.sender_avatar_url || "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png");
 
   return `
@@ -150,15 +184,19 @@ function commitCard(c) {
       <img class="avatar" src="${avatar}" alt="${author}" />
       <div>
         <div class="commit-top">
-          <span class="repo">${repo}</span>
-          <span class="branch">${branch}</span>
+          <button type="button" class="inline-filter repo" data-filter-type="repo" data-filter-value="${repo}">
+            ${repo}
+          </button>
+          <button type="button" class="inline-filter branch" data-filter-type="branch" data-filter-value="${branch}">
+            ${branch}
+          </button>
           <span class="meta">${timeAgo(c.timestamp)}</span>
         </div>
         <div class="message">${msg}</div>
         <div class="commit-bottom">
-          <span>${author}</span>
-          <span>${owner}</span>
-          <a class="sha-link" href="${commitUrl}" target="_blank" rel="noopener noreferrer">${shaShort}</a>
+          <button type="button" class="inline-filter contributor" data-filter-type="contributor" data-filter-value="${author}">
+            ${author}
+          </button>
         </div>
       </div>
     </article>
@@ -185,46 +223,63 @@ function renderPagination() {
   nextPageBtn.disabled = !pagination?.has_next;
 }
 
-function fillSelect(selectEl, values, allLabel, selectedValue) {
-  const options = [`<option value="">${allLabel}</option>`]
-    .concat(values.map(value => {
-      const escaped = escapeHtml(value);
-      const selected = value === selectedValue ? "selected" : "";
-      return `<option value="${escaped}" ${selected}>${escaped}</option>`;
-    }));
+async function loadData() {
+  const query = buildQuery({ page_size: state.page_size });
+  const res = await fetch(`${API_BASE}/api/bootstrap?${query}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to load bootstrap data");
 
-  selectEl.innerHTML = options.join("");
+  const data = await res.json();
+  stats = data.stats;
+  commits = data.items || [];
+  pagination = data.pagination || null;
+
+  renderStats();
+  renderChart();
+  renderActiveFilters();
+  renderFeed();
+  renderPagination();
+  updateUrl();
 }
 
-function renderFilterOptions() {
-  if (!filterOptions) return;
-  fillSelect(repoFilterEl, filterOptions.repos || [], "All repositories", state.repo);
-  fillSelect(branchFilterEl, filterOptions.branches || [], "All branches", state.branch);
-  fillSelect(ownerFilterEl, filterOptions.owners || [], "All owners", state.owner);
-  fillSelect(contributorFilterEl, filterOptions.contributors || [], "All contributors", state.contributor);
-}
+function connectStream() {
+  if (source) source.close();
 
-function syncFilterControlsFromState() {
-  repoFilterEl.value = state.repo;
-  branchFilterEl.value = state.branch;
-  ownerFilterEl.value = state.owner;
-  contributorFilterEl.value = state.contributor;
-}
-
-function updateUrl() {
   const query = buildQuery();
-  const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
-  window.history.replaceState({}, "", nextUrl);
+  source = new EventSource(`${API_BASE}/api/stream${query ? `?${query}` : ""}`);
+
+  source.addEventListener("commit", (event) => {
+    try {
+      const commit = JSON.parse(event.data);
+      addCommitLive(commit);
+    } catch (err) {
+      console.error("Bad stream event", err);
+    }
+  });
+
+  source.onerror = () => {
+    if (source) source.close();
+    setTimeout(connectStream, 3000);
+  };
 }
 
-function readStateFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  state.repo = params.get("repo") || "";
-  state.branch = params.get("branch") || "";
-  state.owner = params.get("owner") || "";
-  state.contributor = params.get("contributor") || "";
-  state.page = Math.max(1, Number(params.get("page") || 1));
-  state.page_size = Math.max(1, Number(params.get("page_size") || PAGE_SIZE));
+async function setFilter(type, value) {
+  if (!["repo", "branch", "owner", "contributor"].includes(type)) return;
+
+  state[type] = value;
+  state.page = 1;
+
+  await loadData();
+  connectStream();
+}
+
+async function clearFilter(type) {
+  if (!["repo", "branch", "owner", "contributor"].includes(type)) return;
+
+  state[type] = "";
+  state.page = 1;
+
+  await loadData();
+  connectStream();
 }
 
 function addCommitLive(commit) {
@@ -272,66 +327,36 @@ function addCommitLive(commit) {
 
   renderStats();
   renderChart();
+  renderActiveFilters();
   renderFeed();
   renderPagination();
 }
 
-async function loadData() {
-  const query = buildQuery({ page_size: state.page_size });
-  const res = await fetch(`${API_BASE}/api/bootstrap?${query}`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to load bootstrap data");
+feedEl.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-filter-type]");
+  if (!button) return;
 
-  const data = await res.json();
-  stats = data.stats;
-  commits = data.items || [];
-  pagination = data.pagination || null;
-  filterOptions = data.filters || null;
+  const type = button.dataset.filterType;
+  const value = button.dataset.filterValue;
 
-  renderFilterOptions();
-  syncFilterControlsFromState();
-  renderStats();
-  renderChart();
-  renderFeed();
-  renderPagination();
-  updateUrl();
-}
+  try {
+    await setFilter(type, value);
+  } catch (err) {
+    console.error(err);
+  }
+});
 
-function connectStream() {
-  if (source) source.close();
+activeFiltersEl.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-clear-filter]");
+  if (!button) return;
 
-  const query = buildQuery();
-  source = new EventSource(`${API_BASE}/api/stream${query ? `?${query}` : ""}`);
+  const type = button.dataset.clearFilter;
 
-  source.addEventListener("commit", (event) => {
-    try {
-      const commit = JSON.parse(event.data);
-      addCommitLive(commit);
-    } catch (err) {
-      console.error("Bad stream event", err);
-    }
-  });
-
-  source.onerror = () => {
-    if (source) source.close();
-    setTimeout(connectStream, 3000);
-  };
-}
-
-async function applyFilters() {
-  state.repo = repoFilterEl.value;
-  state.branch = branchFilterEl.value;
-  state.owner = ownerFilterEl.value;
-  state.contributor = contributorFilterEl.value;
-  state.page = 1;
-
-  await loadData();
-  connectStream();
-}
-
-[repoFilterEl, branchFilterEl, ownerFilterEl, contributorFilterEl].forEach((el) => {
-  el.addEventListener("change", () => {
-    applyFilters().catch(err => console.error(err));
-  });
+  try {
+    await clearFilter(type);
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 refreshBtn.addEventListener("click", async () => {
@@ -349,7 +374,6 @@ clearFiltersBtn.addEventListener("click", async () => {
   state.owner = "";
   state.contributor = "";
   state.page = 1;
-  syncFilterControlsFromState();
 
   try {
     await loadData();
@@ -362,6 +386,7 @@ clearFiltersBtn.addEventListener("click", async () => {
 prevPageBtn.addEventListener("click", async () => {
   if (!pagination?.has_prev) return;
   state.page -= 1;
+
   try {
     await loadData();
   } catch (err) {
@@ -372,6 +397,7 @@ prevPageBtn.addEventListener("click", async () => {
 nextPageBtn.addEventListener("click", async () => {
   if (!pagination?.has_next) return;
   state.page += 1;
+
   try {
     await loadData();
   } catch (err) {

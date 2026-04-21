@@ -37,50 +37,19 @@
     </section>
 
     <section class="panel">
-      <div class="section-header filters-header">
-        <h2>Filters</h2>
+      <div class="section-header">
+        <div>
+          <h2>Recent commits</h2>
+          <div id="active-filters" class="active-filters"></div>
+        </div>
+
         <div class="actions-row">
+          <div id="pagination-summary" class="pagination-summary">Page 1</div>
           <button id="refresh-btn" type="button">Refresh</button>
           <button id="clear-filters-btn" type="button" class="secondary-btn">Clear filters</button>
         </div>
       </div>
 
-      <div class="filters-grid">
-        <label class="filter-field">
-          <span>Repository</span>
-          <select id="repo-filter">
-            <option value="">All repositories</option>
-          </select>
-        </label>
-
-        <label class="filter-field">
-          <span>Branch</span>
-          <select id="branch-filter">
-            <option value="">All branches</option>
-          </select>
-        </label>
-
-        <label class="filter-field">
-          <span>Organization / person</span>
-          <select id="owner-filter">
-            <option value="">All owners</option>
-          </select>
-        </label>
-
-        <label class="filter-field">
-          <span>Contributor</span>
-          <select id="contributor-filter">
-            <option value="">All contributors</option>
-          </select>
-        </label>
-      </div>
-    </section>
-
-    <section class="panel">
-      <div class="section-header">
-        <h2>Recent commits</h2>
-        <div id="pagination-summary" class="pagination-summary">Page 1</div>
-      </div>
       <div id="feed" class="feed"></div>
 
       <div class="pagination-bar">

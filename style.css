@@ -124,49 +124,20 @@ body {
 .section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 14px;
 }
 
 .section-header h2 {
-  margin: 0;
-}
-
-.filters-header {
-  align-items: center;
-}
-
-.filters-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.filter-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.filter-field span {
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.filter-field select {
-  width: 100%;
-  background: #151b1f;
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
+  margin: 0 0 8px;
 }
 
 .actions-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 button {
@@ -228,14 +199,10 @@ button:disabled {
 
 .repo {
   color: var(--green-2);
-  font-weight: 800;
-  text-decoration: none;
 }
 
 .branch {
   color: var(--yellow);
-  font-weight: 800;
-  text-decoration: none;
 }
 
 .meta {
@@ -257,9 +224,50 @@ button:disabled {
   font-size: 0.92rem;
 }
 
-.sha-link {
-  color: #7ec0ff;
-  text-decoration: none;
+.inline-filter {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.inline-filter:hover {
+  filter: none;
+  text-decoration: underline;
+}
+
+.inline-filter.contributor {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filter-chip {
+  background: #161c20;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+}
+
+.filter-chip.active {
+  background: #263220;
+  color: var(--green-2);
+  border-color: #3e5232;
+}
+
+.muted-inline {
+  color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .empty {
@@ -282,12 +290,6 @@ button:disabled {
   color: var(--muted);
 }
 
-@media (max-width: 980px) {
-  .filters-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 800px) {
   .stats-row {
     grid-template-columns: 1fr;
@@ -301,12 +303,6 @@ button:disabled {
   }
 
   .commit-card {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 560px) {
-  .filters-grid {
     grid-template-columns: 1fr;
   }
 }

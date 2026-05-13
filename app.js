@@ -67,7 +67,7 @@ function getCommitTags(commit) {
   const tags = new Set();
 
   if (branch.startsWith("cleanup/")) tags.add("cleanup");
-  if (branch.startsWith("feature/") || branch.startsWith("feat/")) tags.add("feature");
+  if (branch.startsWith("features/") || branch.startsWith("feat/")) tags.add("feature");
   if (branch.startsWith("bugfix/") || branch.startsWith("fix/")) tags.add("bugfix");
 
   if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Commit Tracker</title>
   <link rel="stylesheet" href="./style.css" />
 </head>
+
 <body>
   <div class="container">
     <header class="hero">
@@ -35,6 +37,22 @@
           <div class="stat-value" id="stat-total-authors">0</div>
         </div>
       </div>
+    </section>
+
+    <div class="tabs">
+      <button id="commits-tab-btn" class="tab-btn active" type="button">Commits</button>
+      <button id="branches-tab-btn" class="tab-btn" type="button">Branches</button>
+    </div>
+
+    <section class="panel branches-panel hidden" id="branches-panel">
+      <div class="section-header">
+        <div>
+          <h2>Branches</h2>
+          <p class="sub">Grouped by repo and branch type.</p>
+        </div>
+      </div>
+
+      <div id="branches-tree" class="branches-tree"></div>
     </section>
 
     <section class="panel commits-panel" id="commits-panel">
@@ -70,4 +88,5 @@
   <script src="./config.js"></script>
   <script src="./app.js"></script>
 </body>
+
 </html>

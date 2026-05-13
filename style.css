@@ -383,6 +383,138 @@ button:disabled {
   border-color: rgba(255, 107, 107, 0.35);
 }
 
+.hidden {
+  display: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.tab-btn {
+  background: #1b2228;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.tab-btn.active {
+  background: #263220;
+  color: var(--green-2);
+  border-color: #3e5232;
+}
+
+.branches-tree {
+  display: grid;
+  gap: 16px;
+}
+
+.repo-tree {
+  padding: 14px;
+  border-radius: 14px;
+  background: #151b1f;
+  border: 1px solid var(--border);
+}
+
+.repo-tree-title {
+  font-size: 1.05rem;
+  font-weight: 900;
+  margin-bottom: 12px;
+  color: var(--green-2);
+}
+
+.branch-group {
+  margin: 12px 0 0;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.branch-group-title {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.branch-tree-row {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: stretch;
+  margin: 8px 0;
+}
+
+.branch-tree-line {
+  border-left: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  border-bottom-left-radius: 10px;
+  height: 18px;
+  margin-left: 4px;
+}
+
+.branch-tree-content {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #202931;
+  border: 1px solid #34414c;
+}
+
+.branch-tree-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.branch-name {
+  font-weight: 900;
+  color: var(--text);
+}
+
+.branch-tree-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.branch-badge {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.branch-badge.merged {
+  color: #C084FC;
+  background: rgba(192, 132, 252, 0.12);
+  border: 1px solid rgba(192, 132, 252, 0.35);
+}
+
+.branch-badge.from-main {
+  color: #FF6B6B;
+  background: rgba(255, 107, 107, 0.12);
+  border: 1px solid rgba(255, 107, 107, 0.35);
+}
+
+.branch-type-feature .branch-tree-content {
+  border-color: rgba(230, 183, 83, 0.35);
+}
+
+.branch-type-bugfix .branch-tree-content {
+  border-color: rgba(137, 194, 75, 0.35);
+}
+
+.branch-type-cleanup .branch-tree-content {
+  border-color: rgba(103, 183, 255, 0.35);
+}
+
+.branch-type-hotfix .branch-tree-content {
+  border-color: rgba(255, 107, 107, 0.35);
+}
+
 @media (max-width: 800px) {
   .stats-row {
     grid-template-columns: 1fr;

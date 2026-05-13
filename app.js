@@ -15,6 +15,10 @@ const paginationSummaryEl = document.getElementById("pagination-summary");
 const activeFiltersEl = document.getElementById("active-filters");
 const commitsPanelEl = document.getElementById("commits-panel");
 const panelFooterEl = document.getElementById("panel-footer");
+const commitsTabBtn = document.getElementById("commits-tab-btn");
+const branchesTabBtn = document.getElementById("branches-tab-btn");
+const branchesPanelEl = document.getElementById("branches-panel");
+const branchesTreeEl = document.getElementById("branches-tree");
 
 const PAGE_SIZE = 20;
 
@@ -314,6 +318,148 @@ function commitCard(c) {
   `;
 }
 
+function getBranchType(branch) {
+  const value = String(branch || "").toLowerCase();
+
+  if (value === "main") return "main";
+  if (value.startsWith("feature/") || value.startsWith("features/") || value.startsWith("feat/")) return "feature";
+  if (value.startsWith("bugfix/") || value.startsWith("fix/")) return "bugfix";
+  if (value.startsWith("cleanup/")) return "cleanup";
+  if (value.startsWith("hotfix/")) return "hotfix";
+
+  return "other";
+}
+
+function getBranchDisplayName(branch) {
+  const parts = String(branch || "").split("/");
+  return parts.length > 1 ? parts.slice(1).join("/") : branch;
+}
+
+function buildBranchesByRepo() {
+  const repos = new Map();
+
+  for (const commit of commits) {
+    const repo = commit.repo_full_name || "Unknown repo";
+    const branch = commit.branch || "unknown-branch";
+    const type = getBranchType(branch);
+    const key = `${repo}::${branch}`;
+
+    if (!repos.has(repo)) {
+      repos.set(repo, new Map());
+    }
+
+    const repoBranches = repos.get(repo);
+
+    if (!repoBranches.has(key)) {
+      repoBranches.set(key, {
+        repo,
+        branch,
+        type,
+        displayName: getBranchDisplayName(branch),
+        commitCount: 0,
+        latestTimestamp: commit.timestamp,
+        contributor: commit.contributor || commit.author_name || commit.sender_login || "Unknown",
+        mergedToMain: false,
+        mergedFromMain: false
+      });
+    }
+
+    const item = repoBranches.get(key);
+    item.commitCount += 1;
+
+    if (new Date(commit.timestamp) > new Date(item.latestTimestamp)) {
+      item.latestTimestamp = commit.timestamp;
+      item.contributor = commit.contributor || commit.author_name || commit.sender_login || "Unknown";
+    }
+
+    const message = String(commit.message || "").toLowerCase();
+
+    if (message.includes("-> main") || message.startsWith("merge pull request")) {
+      item.mergedToMain = true;
+    }
+
+    if (message.includes("main ->")) {
+      item.mergedFromMain = true;
+    }
+  }
+
+  return repos;
+}
+
+function renderBranchesTree() {
+  if (!branchesTreeEl) return;
+
+  const repos = buildBranchesByRepo();
+
+  if (!repos.size) {
+    branchesTreeEl.innerHTML = `<div class="empty">No branches found yet.</div>`;
+    return;
+  }
+
+  branchesTreeEl.innerHTML = [...repos.entries()]
+    .map(([repoName, branchesMap]) => {
+      const branches = [...branchesMap.values()].sort((a, b) => {
+        if (a.type === "main") return -1;
+        if (b.type === "main") return 1;
+        return a.branch.localeCompare(b.branch);
+      });
+
+      const grouped = branches.reduce((acc, branch) => {
+        if (!acc[branch.type]) acc[branch.type] = [];
+        acc[branch.type].push(branch);
+        return acc;
+      }, {});
+
+      const groups = ["main", "feature", "bugfix", "cleanup", "hotfix", "other"]
+        .filter((type) => grouped[type]?.length)
+        .map((type) => {
+          const items = grouped[type]
+            .map((branch) => {
+              const badges = [];
+
+              if (branch.mergedToMain) badges.push(`<span class="branch-badge merged">merged to main</span>`);
+              if (branch.mergedFromMain) badges.push(`<span class="branch-badge from-main">from main</span>`);
+
+              return `
+                <div class="branch-tree-row branch-type-${escapeHtml(branch.type)}">
+                  <div class="branch-tree-line"></div>
+
+                  <div class="branch-tree-content">
+                    <div class="branch-tree-title">
+                      <span class="branch-name">${escapeHtml(branch.branch)}</span>
+                      ${badges.join("")}
+                    </div>
+
+                    <div class="branch-tree-meta">
+                      ${formatNumber(branch.commitCount)} commit${branch.commitCount === 1 ? "" : "s"}
+                      · last active ${timeAgo(branch.latestTimestamp)}
+                      · ${escapeHtml(branch.contributor)}
+                    </div>
+                  </div>
+                </div>
+              `;
+            })
+            .join("");
+
+          return `
+            <div class="branch-group">
+              <div class="branch-group-title">${escapeHtml(type)}</div>
+              ${items}
+            </div>
+          `;
+        })
+        .join("");
+
+      return `
+        <div class="repo-tree">
+          <div class="repo-tree-title">${escapeHtml(repoName)}</div>
+          ${groups}
+        </div>
+      `;
+    })
+    .join("");
+}
+
 function renderFeed() {
   if (!commits.length) {
     feedEl.innerHTML = `<div class="empty">No commits match the current filters.</div>`;
@@ -352,6 +498,7 @@ async function loadData() {
   renderChart();
   renderActiveFilters();
   renderFeed();
+  renderBranchesTree();
   renderPagination();
   updateUrl();
   setupStickyFooterVisibility();
@@ -456,6 +603,7 @@ function addCommitLive(commit) {
   renderChart();
   renderActiveFilters();
   renderFeed();
+  renderBranchesTree();
   renderPagination();
 }
 
@@ -558,6 +706,24 @@ nextPageBtn.addEventListener("click", async () => {
   } catch (err) {
     console.error(err);
   }
+});
+
+commitsTabBtn?.addEventListener("click", () => {
+  commitsTabBtn.classList.add("active");
+  branchesTabBtn.classList.remove("active");
+
+  commitsPanelEl.classList.remove("hidden");
+  branchesPanelEl.classList.add("hidden");
+});
+
+branchesTabBtn?.addEventListener("click", () => {
+  branchesTabBtn.classList.add("active");
+  commitsTabBtn.classList.remove("active");
+
+  branchesPanelEl.classList.remove("hidden");
+  commitsPanelEl.classList.add("hidden");
+
+  renderBranchesTree();
 });
 
 

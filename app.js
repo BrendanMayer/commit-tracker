@@ -81,7 +81,7 @@ function getCommitTags(commit) {
 
   const tags = new Set();
 
-  if (branch.startsWith("cleanup/")) tags.add("cleanup");
+  if (branch.startsWith("cleanup/") || branch.startsWith("refinement")) tags.add("cleanup");
   if (branch.startsWith("feature/") || branch.startsWith("features/") || branch.startsWith("feat/")) {
     tags.add("feature");
   }
@@ -89,7 +89,7 @@ function getCommitTags(commit) {
 
   if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");
   if (/\bfeat\b|\bfeature(s)?\b|\badd(ed|s|ing)?\b/.test(message)) tags.add("feature");
-  if (/\bcleanup\b|\bclean up\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
+  if (/\bcleanup\b|\bclean up\b|\brefinement\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
 
   return [...tags];
 }

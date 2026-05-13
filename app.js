@@ -410,7 +410,7 @@ function renderBranchesTree() {
         return acc;
       }, {});
 
-      const groups = ["main", "feature", "bugfix", "cleanup", "hotfix", "other"]
+      const groups = ["main", "feature", "features", "bugfix", "cleanup", "hotfix", "other"]
         .filter((type) => grouped[type]?.length)
         .map((type) => {
           const items = grouped[type]

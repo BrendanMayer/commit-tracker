@@ -73,7 +73,7 @@ function getCommitTags(commit) {
   if (branch.startsWith("bugfix/") || branch.startsWith("fix/")) tags.add("bugfix");
 
   if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");
-  if (/\bfeat\b|\bfeature\b|\badd(ed|s|ing)?\b/.test(message)) tags.add("feature");
+  if (/\bfeat\b|\bfeature(s)?\b|\badd(ed|s|ing)?\b/.test(message)) tags.add("feature");
   if (/\bcleanup\b|\bclean up\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
 
   return [...tags];

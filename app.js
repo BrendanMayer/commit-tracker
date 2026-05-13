@@ -74,7 +74,7 @@ function getCommitTags(commit) {
 
   if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");
   if (/\bfeat\b|\bfeature\b|\badd(ed|s|ing)?\b/.test(message)) tags.add("feature");
-  if (/\bcleanup\b|\bclean up\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
+  if (/\bcleanup\b|\bclean up\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
 
   return [...tags];
 }

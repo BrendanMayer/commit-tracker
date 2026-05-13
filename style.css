@@ -334,40 +334,54 @@ button:disabled {
 }
 
 .commit-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 0 0 8px;
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
 
-  .tag {
-    padding: 4px 8px;
-    border-radius: 999px;
-    font-size: 0.82rem;
-    font-weight: 800;
-    border: 1px solid transparent;
-  }
+.tag {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  border: 1px solid transparent;
+}
 
-  /* Feature = yellow */
-  .tag-feature {
-    color: #E6B753;
-    background: rgba(230, 183, 83, 0.12);
-    border-color: rgba(230, 183, 83, 0.35);
-  }
+/* Feature = yellow */
+.tag-feature {
+  color: #E6B753;
+  background: rgba(230, 183, 83, 0.12);
+  border-color: rgba(230, 183, 83, 0.35);
+}
 
-  /* Bugfix = green */
-  .tag-bugfix {
-    color: #89c24b;
-    background: rgba(137, 194, 75, 0.12);
-    border-color: rgba(137, 194, 75, 0.35);
-  }
+/* Bugfix = green */
+.tag-bugfix {
+  color: #89c24b;
+  background: rgba(137, 194, 75, 0.12);
+  border-color: rgba(137, 194, 75, 0.35);
+}
 
-  /* Cleanup = blue */
-  .tag-cleanup {
-    color: #67B7FF;
-    background: rgba(103, 183, 255, 0.12);
-    border-color: rgba(103, 183, 255, 0.35);
-  }
+/* Cleanup = blue */
+.tag-cleanup {
+  color: #67B7FF;
+  background: rgba(103, 183, 255, 0.12);
+  border-color: rgba(103, 183, 255, 0.35);
+}
+
+/* Merge TO main = purple */
+.tag-merge-to-main {
+  color: #C084FC;
+  background: rgba(192, 132, 252, 0.12);
+  border-color: rgba(192, 132, 252, 0.35);
+}
+
+/* Merge FROM main = red */
+.tag-merge-from-main {
+  color: #FF6B6B;
+  background: rgba(255, 107, 107, 0.12);
+  border-color: rgba(255, 107, 107, 0.35);
+}
 
 @media (max-width: 800px) {
   .stats-row {
@@ -394,6 +408,5 @@ button:disabled {
     text-align: center;
   }
 
-  
-}
 
+}

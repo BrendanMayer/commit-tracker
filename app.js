@@ -64,6 +64,21 @@ function getCommitTags(commit) {
   const branch = String(commit.branch || "").toLowerCase();
   const message = String(commit.message || "").toLowerCase();
 
+  // Merge tags override all others
+
+  // Branch merged INTO main
+  if (
+    message.includes("-> main") ||
+    message.startsWith("merge pull request")
+  ) {
+    return ["merge-to-main"];
+  }
+
+  // Branch created FROM main
+  if (message.includes("main ->")) {
+    return ["merge-from-main"];
+  }
+
   const tags = new Set();
 
   if (branch.startsWith("cleanup/")) tags.add("cleanup");

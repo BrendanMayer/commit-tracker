@@ -67,7 +67,9 @@ function getCommitTags(commit) {
   const tags = new Set();
 
   if (branch.startsWith("cleanup/")) tags.add("cleanup");
-  if (branch.startsWith("features/") || branch.startsWith("feat/")) tags.add("feature");
+  if (branch.startsWith("feature/") || branch.startsWith("features/") || branch.startsWith("feat/")) {
+    tags.add("feature");
+  }
   if (branch.startsWith("bugfix/") || branch.startsWith("fix/")) tags.add("bugfix");
 
   if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");
@@ -85,14 +87,14 @@ function renderTags(commit) {
   return `
     <div class="commit-tags">
       ${tags
-        .map(
-          (tag) => `
+      .map(
+        (tag) => `
             <span class="tag tag-${escapeHtml(tag)}">
               #${escapeHtml(tag)}
             </span>
           `
-        )
-        .join("")}
+      )
+      .join("")}
     </div>
   `;
 }
@@ -176,10 +178,9 @@ function renderHeadline() {
     : "";
 
   sublineEl.textContent =
-    `Tracking started ${
-      stats?.tracking_started_at
-        ? new Date(stats.tracking_started_at).toLocaleString()
-        : "unknown"
+    `Tracking started ${stats?.tracking_started_at
+      ? new Date(stats.tracking_started_at).toLocaleString()
+      : "unknown"
     }${filterText}`;
 }
 
@@ -250,7 +251,7 @@ function commitCard(c) {
   const msg = escapeHtml(c.message || "");
   const avatar = escapeHtml(
     c.sender_avatar_url ||
-      "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+    "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
   );
 
   return `

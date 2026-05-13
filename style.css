@@ -333,32 +333,7 @@ button:disabled {
   padding: 10px 0 2px;
 }
 
-@media (max-width: 800px) {
-  .stats-row {
-    grid-template-columns: 1fr;
-  }
-
-  .hero,
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .commit-card {
-    grid-template-columns: 1fr;
-  }
-
-  .panel-pagination {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .page-indicator,
-  .pagination-summary {
-    text-align: center;
-  }
-
-  .commit-tags {
+.commit-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -393,4 +368,32 @@ button:disabled {
     background: rgba(103, 183, 255, 0.12);
     border-color: rgba(103, 183, 255, 0.35);
   }
+
+@media (max-width: 800px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hero,
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .commit-card {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-indicator,
+  .pagination-summary {
+    text-align: center;
+  }
+
+  
 }
+

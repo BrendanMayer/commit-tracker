@@ -358,4 +358,21 @@ button:disabled {
   .pagination-summary {
     text-align: center;
   }
+
+  .commit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.tag {
+  color: var(--green-2);
+  background: #263220;
+  border: 1px solid #3e5232;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
 }

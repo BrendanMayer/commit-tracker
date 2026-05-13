@@ -60,6 +60,35 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
+function getCommitTags(commit) {
+  const branch = String(commit.branch || "").toLowerCase();
+  const message = String(commit.message || "").toLowerCase();
+
+  const tags = new Set();
+
+  if (branch.startsWith("cleanup/")) tags.add("cleanup");
+  if (branch.startsWith("feature/") || branch.startsWith("feat/")) tags.add("feature");
+  if (branch.startsWith("bugfix/") || branch.startsWith("fix/")) tags.add("bugfix");
+
+  if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");
+  if (/\bfeat\b|\bfeature\b|\badd(ed|s|ing)?\b/.test(message)) tags.add("feature");
+  if (/\bcleanup\b|\bclean up\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
+
+  return [...tags];
+}
+
+function renderTags(commit) {
+  const tags = getCommitTags(commit);
+
+  if (!tags.length) return "";
+
+  return `
+    <div class="commit-tags">
+      ${tags.map((tag) => `<span class="tag">#${escapeHtml(tag)}</span>`).join("")}
+    </div>
+  `;
+}
+
 function buildQuery(params = {}) {
   const search = new URLSearchParams();
   const merged = { ...state, ...params };
@@ -243,6 +272,8 @@ function commitCard(c) {
         </div>
 
         <div class="message">${msg}</div>
+
+        ${renderTags(c)}
 
         <div class="commit-bottom">
           <button

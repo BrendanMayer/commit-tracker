@@ -84,7 +84,15 @@ function renderTags(commit) {
 
   return `
     <div class="commit-tags">
-      ${tags.map((tag) => `<span class="tag">#${escapeHtml(tag)}</span>`).join("")}
+      ${tags
+        .map(
+          (tag) => `
+            <span class="tag tag-${escapeHtml(tag)}">
+              #${escapeHtml(tag)}
+            </span>
+          `
+        )
+        .join("")}
     </div>
   `;
 }

@@ -14,7 +14,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background: var(--bg);
@@ -81,7 +82,7 @@ body {
   border-radius: 14px;
   padding: 10px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.00)),
     #151b1f;
   border: 1px solid #232b31;
 }
@@ -309,12 +310,10 @@ button:disabled {
   z-index: 20;
   margin-top: 18px;
   padding-top: 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(27, 34, 40, 0) 0%,
-    rgba(27, 34, 40, 0.88) 20%,
-    rgba(27, 34, 40, 0.98) 100%
-  );
+  background: linear-gradient(180deg,
+      rgba(27, 34, 40, 0) 0%,
+      rgba(27, 34, 40, 0.88) 20%,
+      rgba(27, 34, 40, 0.98) 100%);
   backdrop-filter: blur(8px);
 }
 
@@ -324,7 +323,7 @@ button:disabled {
   border: 1px solid var(--border);
   border-radius: 14px;
   background: #161c20;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .site-footer {
@@ -360,19 +359,38 @@ button:disabled {
   }
 
   .commit-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 8px;
-}
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 8px;
+  }
 
-.tag {
-  color: var(--green-2);
-  background: #263220;
-  border: 1px solid #3e5232;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
+  .tag {
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    border: 1px solid transparent;
+  }
+
+  /* Feature = yellow */
+  .tag-feature {
+    color: #E6B753;
+    background: rgba(230, 183, 83, 0.12);
+    border-color: rgba(230, 183, 83, 0.35);
+  }
+
+  /* Bugfix = green */
+  .tag-bugfix {
+    color: #89c24b;
+    background: rgba(137, 194, 75, 0.12);
+    border-color: rgba(137, 194, 75, 0.35);
+  }
+
+  /* Cleanup = blue */
+  .tag-cleanup {
+    color: #67B7FF;
+    background: rgba(103, 183, 255, 0.12);
+    border-color: rgba(103, 183, 255, 0.35);
+  }
 }

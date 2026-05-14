@@ -474,7 +474,7 @@ function renderBranchesTree() {
 
                     <div class="branch-tree-meta">
                       ${formatNumber(branch.commitCount)} commit${branch.commitCount === 1 ? "" : "s"}
-                      · last active ${timeAgo(branch.latestTimestamp)}
+                      ${branch.latestTimestamp ? `· last active ${timeAgo(branch.latestTimestamp)}` : "· no recent commits"}
                       · ${escapeHtml(branch.contributor)}
                     </div>
                   </div>
@@ -683,21 +683,12 @@ function renderPagination() {
 async function loadData() {
   const query = buildQuery({ page_size: state.page_size });
 
-  const [bootstrapRes, branchesRes] = await Promise.all([
-    fetch(`${API_BASE}/api/bootstrap?${query}`, {
-      cache: "no-store"
-    }),
-    fetch(`${API_BASE}/api/branches`, {
-      cache: "no-store"
-    })
-  ]);
+  const bootstrapRes = await fetch(`${API_BASE}/api/bootstrap?${query}`, {
+    cache: "no-store"
+  });
 
   if (!bootstrapRes.ok) {
     throw new Error("Failed to load bootstrap data");
-  }
-
-  if (!branchesRes.ok) {
-    throw new Error("Failed to load branches");
   }
 
   const data = await bootstrapRes.json();
@@ -706,8 +697,22 @@ async function loadData() {
   commits = data.items || [];
   pagination = data.pagination || null;
 
-  const branchData = await branchesRes.json();
-  branches = branchData.items || [];
+  try {
+    const branchesRes = await fetch(`${API_BASE}/api/branches`, {
+      cache: "no-store"
+    });
+
+    if (branchesRes.ok) {
+      const branchData = await branchesRes.json();
+      branches = branchData.items || [];
+    } else {
+      console.warn("Failed to load branches");
+      branches = [];
+    }
+  } catch (err) {
+    console.warn("Branches endpoint failed", err);
+    branches = [];
+  }
 
   renderStats();
   renderChart();

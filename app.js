@@ -19,10 +19,12 @@ const commitsTabBtn = document.getElementById("commits-tab-btn");
 const branchesTabBtn = document.getElementById("branches-tab-btn");
 const branchesPanelEl = document.getElementById("branches-panel");
 const branchesTreeEl = document.getElementById("branches-tree");
+const adminLoginBtn = document.getElementById("admin-login-btn");
 
 const PAGE_SIZE = 20;
 
 let commits = [];
+let branches = [];
 let stats = null;
 let pagination = null;
 let source = null;
@@ -54,6 +56,24 @@ function timeAgo(iso) {
   if (hours < 24) return `${hours}h ago`;
   return `${days}d ago`;
 }
+
+function getUploadKey() {
+  return localStorage.getItem("upload_api_key") || "";
+}
+
+function isAdmin() {
+  return Boolean(getUploadKey());
+}
+
+adminLoginBtn?.addEventListener("click", () => {
+  const key = prompt("Enter upload API key");
+
+  if (!key) return;
+
+  localStorage.setItem("upload_api_key", key);
+
+  alert("Admin upload enabled.");
+});
 
 function escapeHtml(str) {
   return String(str || "")
@@ -274,7 +294,7 @@ function commitCard(c) {
   );
 
   return `
-    <article class="commit-card">
+    <article class="commit-card" data-commit-sha="${escapeHtml(c.sha)}">
       <img class="avatar" src="${avatar}" alt="${author}" />
       <div>
         <div class="commit-top">
@@ -338,9 +358,9 @@ function getBranchDisplayName(branch) {
 function buildBranchesByRepo() {
   const repos = new Map();
 
-  for (const commit of commits) {
-    const repo = commit.repo_full_name || "Unknown repo";
-    const branch = commit.branch || "unknown-branch";
+  for (const branchInfo of branches) {
+    const repo = branchInfo.repo_full_name || "Unknown repo";
+    const branch = branchInfo.branch || "unknown-branch";
     const type = getBranchType(branch);
     const key = `${repo}::${branch}`;
 
@@ -350,31 +370,52 @@ function buildBranchesByRepo() {
 
     const repoBranches = repos.get(repo);
 
-    if (!repoBranches.has(key)) {
-      repoBranches.set(key, {
-        repo,
-        branch,
-        type,
-        displayName: getBranchDisplayName(branch),
-        commitCount: 0,
-        latestTimestamp: commit.timestamp,
-        contributor: commit.contributor || commit.author_name || commit.sender_login || "Unknown",
-        mergedToMain: false,
-        mergedFromMain: false
-      });
-    }
+    repoBranches.set(key, {
+      repo,
+      branch,
+      type,
+      displayName: getBranchDisplayName(branch),
+      commitCount: 0,
+      latestTimestamp: null,
+      contributor: "Unknown",
+      mergedToMain: false,
+      mergedFromMain: false
+    });
+  }
+
+  for (const commit of commits) {
+    const repo = commit.repo_full_name || "Unknown repo";
+    const branch = commit.branch || "unknown-branch";
+    const key = `${repo}::${branch}`;
+
+    if (!repos.has(repo)) continue;
+
+    const repoBranches = repos.get(repo);
+
+    if (!repoBranches.has(key)) continue;
 
     const item = repoBranches.get(key);
+
     item.commitCount += 1;
 
-    if (new Date(commit.timestamp) > new Date(item.latestTimestamp)) {
+    if (
+      !item.latestTimestamp ||
+      new Date(commit.timestamp) > new Date(item.latestTimestamp)
+    ) {
       item.latestTimestamp = commit.timestamp;
-      item.contributor = commit.contributor || commit.author_name || commit.sender_login || "Unknown";
+      item.contributor =
+        commit.contributor ||
+        commit.author_name ||
+        commit.sender_login ||
+        "Unknown";
     }
 
     const message = String(commit.message || "").toLowerCase();
 
-    if (message.includes("-> main") || message.startsWith("merge pull request")) {
+    if (
+      message.includes("-> main") ||
+      message.startsWith("merge pull request")
+    ) {
       item.mergedToMain = true;
     }
 
@@ -469,6 +510,79 @@ function renderFeed() {
   feedEl.innerHTML = commits.map(commitCard).join("");
 }
 
+async function uploadVideo(file) {
+  const key = getUploadKey();
+
+  if (!key) {
+    throw new Error("Not authorized");
+  }
+
+  const formData = new FormData();
+  formData.append("video", file);
+
+  const res = await fetch(`${API_BASE}/api/videos`, {
+    method: "POST",
+    headers: {
+      "x-api-key": key
+    },
+    body: formData
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Upload failed");
+  }
+
+  return res.json();
+}
+
+feedEl.addEventListener("dragover", (event) => {
+  const card = event.target.closest(".commit-card");
+
+  if (!card || !isAdmin()) return;
+
+  event.preventDefault();
+
+  card.classList.add("drag-over");
+});
+
+feedEl.addEventListener("dragleave", (event) => {
+  const card = event.target.closest(".commit-card");
+
+  if (!card) return;
+
+  card.classList.remove("drag-over");
+});
+
+feedEl.addEventListener("drop", async (event) => {
+  const card = event.target.closest(".commit-card");
+
+  if (!card || !isAdmin()) return;
+
+  event.preventDefault();
+
+  card.classList.remove("drag-over");
+
+  const file = event.dataTransfer.files[0];
+
+  if (!file || !file.type.startsWith("video/")) {
+    alert("Drop a video file.");
+    return;
+  }
+
+  try {
+    const uploaded = await uploadVideo(file);
+
+    await navigator.clipboard.writeText(uploaded.url);
+
+    alert(`Video uploaded.\n\nURL copied to clipboard.`);
+  } catch (err) {
+    console.error(err);
+
+    alert("Upload failed.");
+  }
+});
+
 function renderPagination() {
   const page = pagination?.page || 1;
   const totalPages = pagination?.total_pages || 1;
@@ -483,16 +597,32 @@ function renderPagination() {
 
 async function loadData() {
   const query = buildQuery({ page_size: state.page_size });
-  const res = await fetch(`${API_BASE}/api/bootstrap?${query}`, { cache: "no-store" });
 
-  if (!res.ok) {
+  const [bootstrapRes, branchesRes] = await Promise.all([
+    fetch(`${API_BASE}/api/bootstrap?${query}`, {
+      cache: "no-store"
+    }),
+    fetch(`${API_BASE}/api/branches`, {
+      cache: "no-store"
+    })
+  ]);
+
+  if (!bootstrapRes.ok) {
     throw new Error("Failed to load bootstrap data");
   }
 
-  const data = await res.json();
+  if (!branchesRes.ok) {
+    throw new Error("Failed to load branches");
+  }
+
+  const data = await bootstrapRes.json();
+
   stats = data.stats;
   commits = data.items || [];
   pagination = data.pagination || null;
+
+  const branchData = await branchesRes.json();
+  branches = branchData.items || [];
 
   renderStats();
   renderChart();

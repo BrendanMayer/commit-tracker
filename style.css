@@ -515,6 +515,11 @@ button:disabled {
   border-color: rgba(255, 107, 107, 0.35);
 }
 
+.commit-card.drag-over {
+  outline: 2px dashed #C084FC;
+  outline-offset: 4px;
+}
+
 @media (max-width: 800px) {
   .stats-row {
     grid-template-columns: 1fr;

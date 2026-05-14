@@ -74,7 +74,7 @@ adminLoginBtn?.addEventListener("click", () => {
   localStorage.setItem("upload_api_key", key);
   renderAdminStatus();
 
-  alert("Admin upload enabled.");
+  
 });
 
 function escapeHtml(str) {
@@ -518,7 +518,7 @@ function renderAdminStatus() {
 
   const active = isAdmin();
 
-  adminStatusEl.textContent = active ? "Admin mode" : "Viewer mode";
+  adminStatusEl.textContent = active ? "Key Saved" : "Viewer mode";
   adminStatusEl.classList.toggle("active", active);
 }
 

@@ -322,6 +322,7 @@ function commitCard(c) {
         <div class="message">${msg}</div>
 
         ${renderTags(c)}
+        ${renderCommitVideo(c)}
 
         <div class="commit-bottom">
           <button
@@ -510,6 +511,32 @@ function renderFeed() {
   feedEl.innerHTML = commits.map(commitCard).join("");
 }
 
+function renderCommitVideo(commit) {
+  if (!commit.video?.url) return "";
+
+  return `
+    <div class="commit-video">
+      <video controls preload="metadata">
+        <source src="${escapeHtml(commit.video.url)}">
+        Your browser does not support the video tag.
+      </video>
+
+      ${isAdmin()
+      ? `
+            <button
+              type="button"
+              class="remove-video-btn secondary-btn"
+              data-remove-video-sha="${escapeHtml(commit.sha)}"
+            >
+              Remove video
+            </button>
+          `
+      : ""
+    }
+    </div>
+  `;
+}
+
 async function uploadVideo(file) {
   const key = getUploadKey();
 
@@ -531,6 +558,26 @@ async function uploadVideo(file) {
   if (!res.ok) {
     const text = await res.text();
     throw new Error(text || "Upload failed");
+  }
+
+  return res.json();
+}
+
+async function attachVideoToCommit(sha, uploaded) {
+  const res = await fetch(`${API_BASE}/api/commits/${encodeURIComponent(sha)}/video`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": getUploadKey(),
+    },
+    body: JSON.stringify({
+      url: uploaded.url,
+      filename: uploaded.filename,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to attach video to commit");
   }
 
   return res.json();
@@ -570,16 +617,54 @@ feedEl.addEventListener("drop", async (event) => {
     return;
   }
 
+  const uploaded = await uploadVideo(file);
+  const sha = card.dataset.commitSha;
+
+  await attachVideoToCommit(sha, uploaded);
+
+  const commit = commits.find((c) => c.sha === sha);
+
+  if (commit) {
+    commit.video = {
+      url: uploaded.url,
+      filename: uploaded.filename,
+    };
+  }
+
+  renderFeed();
+
+  alert("Video uploaded and attached to commit.");
+});
+
+feedEl.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-remove-video-sha]");
+
+  if (!button) return;
+
+  const sha = button.dataset.removeVideoSha;
+
   try {
-    const uploaded = await uploadVideo(file);
+    const res = await fetch(`${API_BASE}/api/commits/${encodeURIComponent(sha)}/video`, {
+      method: "DELETE",
+      headers: {
+        "x-api-key": getUploadKey(),
+      },
+    });
 
-    await navigator.clipboard.writeText(uploaded.url);
+    if (!res.ok) {
+      throw new Error("Failed to remove video");
+    }
 
-    alert(`Video uploaded.\n\nURL copied to clipboard.`);
+    const commit = commits.find((c) => c.sha === sha);
+
+    if (commit) {
+      commit.video = null;
+    }
+
+    renderFeed();
   } catch (err) {
     console.error(err);
-
-    alert("Upload failed.");
+    alert("Failed to remove video.");
   }
 });
 

@@ -115,7 +115,11 @@ function getCommitTags(commit) {
 
   if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");
   if (/\bfeat\b|\bfeature(s)?\b|\badd(ed|s|ing)?\b/.test(message)) tags.add("feature");
-  if (/\bcleanup\b|\bclean up\b|\brefinement\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
+  if (/\bcleanup\b|\bclean up\b|\bchange(s|d)?\b|\brefinement\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
+
+  if (tags.size === 0) {
+  tags.add("feature");
+  }
 
   return [...tags];
 }

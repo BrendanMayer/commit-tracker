@@ -539,6 +539,22 @@ button:disabled {
   margin: 10px;
 }
 
+.admin-status {
+  color: var(--muted);
+  border: 1px solid var(--border);
+  background: #161c20;
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.admin-status.active {
+  color: #C084FC;
+  border-color: rgba(192, 132, 252, 0.35);
+  background: rgba(192, 132, 252, 0.12);
+}
+
 @media (max-width: 800px) {
   .stats-row {
     grid-template-columns: 1fr;

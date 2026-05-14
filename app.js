@@ -20,6 +20,7 @@ const branchesTabBtn = document.getElementById("branches-tab-btn");
 const branchesPanelEl = document.getElementById("branches-panel");
 const branchesTreeEl = document.getElementById("branches-tree");
 const adminLoginBtn = document.getElementById("admin-login-btn");
+const adminStatusEl = document.getElementById("admin-status");
 
 const PAGE_SIZE = 20;
 
@@ -71,6 +72,7 @@ adminLoginBtn?.addEventListener("click", () => {
   if (!key) return;
 
   localStorage.setItem("upload_api_key", key);
+  renderAdminStatus();
 
   alert("Admin upload enabled.");
 });
@@ -509,6 +511,15 @@ function renderFeed() {
   }
 
   feedEl.innerHTML = commits.map(commitCard).join("");
+}
+
+function renderAdminStatus() {
+  if (!adminStatusEl) return;
+
+  const active = isAdmin();
+
+  adminStatusEl.textContent = active ? "Admin mode" : "Viewer mode";
+  adminStatusEl.classList.toggle("active", active);
 }
 
 function renderCommitVideo(commit) {
@@ -950,6 +961,7 @@ branchesTabBtn?.addEventListener("click", () => {
 (async function init() {
   readStateFromUrl();
 
+  renderAdminStatus();
   try {
     await loadData();
     connectStream();

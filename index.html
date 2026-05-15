@@ -42,6 +42,7 @@
     <div class="tabs">
       <button id="commits-tab-btn" class="tab-btn active" type="button">Commits</button>
       <button id="branches-tab-btn" class="tab-btn" type="button">Branches</button>
+      <button id="releases-tab-btn" class="tab-btn" type="button">Releases</button>
     </div>
 
     <section class="panel branches-panel hidden" id="branches-panel">
@@ -53,6 +54,29 @@
       </div>
 
       <div id="branches-tree" class="branches-tree"></div>
+    </section>
+
+    <section class="panel releases-panel hidden" id="releases-panel">
+      <div class="section-header">
+        <div>
+          <h2>Releases</h2>
+          <p class="sub">Generate and preview markdown patch notes per repo.</p>
+        </div>
+      </div>
+
+      <div class="release-controls">
+        <select id="release-repo-select"></select>
+
+        <input id="release-version-input" type="text" placeholder="v1.0.0" />
+
+        <button id="create-release-btn" type="button">
+          Create version
+        </button>
+      </div>
+
+      <div id="release-version-list" class="release-version-list"></div>
+
+      <pre id="release-preview" class="release-preview">Select a version to preview patch notes.</pre>
     </section>
 
     <section class="panel commits-panel" id="commits-panel">

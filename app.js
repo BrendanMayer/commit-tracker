@@ -21,11 +21,19 @@ const branchesPanelEl = document.getElementById("branches-panel");
 const branchesTreeEl = document.getElementById("branches-tree");
 const adminLoginBtn = document.getElementById("admin-login-btn");
 const adminStatusEl = document.getElementById("admin-status");
+const releasesTabBtn = document.getElementById("releases-tab-btn");
+const releasesPanelEl = document.getElementById("releases-panel");
+const releaseRepoSelectEl = document.getElementById("release-repo-select");
+const releaseVersionInputEl = document.getElementById("release-version-input");
+const createReleaseBtn = document.getElementById("create-release-btn");
+const releaseVersionListEl = document.getElementById("release-version-list");
+const releasePreviewEl = document.getElementById("release-preview");
 
 const PAGE_SIZE = 20;
 
 let commits = [];
 let branches = [];
+let releases = [];
 let stats = null;
 let pagination = null;
 let source = null;
@@ -74,7 +82,7 @@ adminLoginBtn?.addEventListener("click", () => {
   localStorage.setItem("upload_api_key", key);
   renderAdminStatus();
 
-  
+
 });
 
 function escapeHtml(str) {
@@ -118,7 +126,7 @@ function getCommitTags(commit) {
   if (/\bcleanup\b|\bclean up\b|\bchange(s|d)?\b|\brefinement\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
 
   if (tags.size === 0) {
-  tags.add("feature");
+    tags.add("feature");
   }
 
   return [...tags];
@@ -508,6 +516,113 @@ function renderBranchesTree() {
     .join("");
 }
 
+function getKnownReposFromData() {
+  const repoSet = new Set();
+
+  commits.forEach((commit) => {
+    if (commit.repo_full_name) repoSet.add(commit.repo_full_name);
+  });
+
+  branches.forEach((branch) => {
+    if (branch.repo_full_name) repoSet.add(branch.repo_full_name);
+  });
+
+  return [...repoSet].sort((a, b) => a.localeCompare(b));
+}
+
+function renderReleaseRepoOptions() {
+  if (!releaseRepoSelectEl) return;
+
+  const repos = getKnownReposFromData();
+
+  releaseRepoSelectEl.innerHTML = repos
+    .map((repo) => `<option value="${escapeHtml(repo)}">${escapeHtml(repo)}</option>`)
+    .join("");
+}
+
+async function loadReleasesForSelectedRepo() {
+  if (!releaseRepoSelectEl?.value) return;
+
+  const repo = releaseRepoSelectEl.value;
+
+  const res = await fetch(
+    `${API_BASE}/api/releases?repo_full_name=${encodeURIComponent(repo)}`,
+    { cache: "no-store" }
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to load releases");
+  }
+
+  const data = await res.json();
+  releases = data.items || [];
+
+  renderReleaseVersions();
+}
+
+function renderReleaseVersions() {
+  if (!releaseVersionListEl) return;
+
+  if (!releases.length) {
+    releaseVersionListEl.innerHTML = `<div class="empty">No releases for this repo yet.</div>`;
+    releasePreviewEl.textContent = "Create a version to generate patch notes.";
+    return;
+  }
+
+  releaseVersionListEl.innerHTML = releases
+    .map(
+      (release) => `
+        <button
+          type="button"
+          class="release-version-btn"
+          data-release-id="${escapeHtml(release.id)}"
+        >
+          ${escapeHtml(release.version)}
+        </button>
+      `
+    )
+    .join("");
+}
+
+async function createRelease() {
+  const repo = releaseRepoSelectEl?.value;
+  const version = releaseVersionInputEl?.value.trim();
+
+  if (!repo) {
+    alert("Select a repo first.");
+    return;
+  }
+
+  if (!version) {
+    alert("Enter a version.");
+    return;
+  }
+
+  const res = await fetch(`${API_BASE}/api/releases`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": getUploadKey(),
+    },
+    body: JSON.stringify({
+      repo_full_name: repo,
+      version,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to create release");
+  }
+
+  const release = await res.json();
+
+  releaseVersionInputEl.value = "";
+  await loadReleasesForSelectedRepo();
+
+  releasePreviewEl.textContent = release.notes_markdown || "";
+}
+
 function renderFeed() {
   if (!commits.length) {
     feedEl.innerHTML = `<div class="empty">No commits match the current filters.</div>`;
@@ -734,6 +849,11 @@ async function loadData() {
   renderActiveFilters();
   renderFeed();
   renderBranchesTree();
+  renderReleaseRepoOptions();
+
+  if (releaseRepoSelectEl?.value) {
+    await loadReleasesForSelectedRepo();
+  }
   renderPagination();
   updateUrl();
   setupStickyFooterVisibility();
@@ -882,6 +1002,40 @@ feedEl.addEventListener("click", async (event) => {
   }
 });
 
+releaseRepoSelectEl?.addEventListener("change", async () => {
+  try {
+    await loadReleasesForSelectedRepo();
+  } catch (err) {
+    console.error(err);
+    releasePreviewEl.textContent = "Failed to load releases.";
+  }
+});
+
+createReleaseBtn?.addEventListener("click", async () => {
+  if (!isAdmin()) {
+    alert("Admin mode required.");
+    return;
+  }
+
+  try {
+    await createRelease();
+  } catch (err) {
+    console.error(err);
+    alert("Failed to create release.");
+  }
+});
+
+releaseVersionListEl?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-release-id]");
+  if (!button) return;
+
+  const release = releases.find((item) => String(item.id) === String(button.dataset.releaseId));
+
+  if (!release) return;
+
+  releasePreviewEl.textContent = release.notes_markdown || "";
+});
+
 activeFiltersEl.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-clear-filter]");
   if (!button) return;
@@ -949,6 +1103,9 @@ commitsTabBtn?.addEventListener("click", () => {
 
   commitsPanelEl.classList.remove("hidden");
   branchesPanelEl.classList.add("hidden");
+
+  releasesTabBtn.classList.remove("active");
+  releasesPanelEl.classList.add("hidden");
 });
 
 branchesTabBtn?.addEventListener("click", () => {
@@ -958,7 +1115,28 @@ branchesTabBtn?.addEventListener("click", () => {
   branchesPanelEl.classList.remove("hidden");
   commitsPanelEl.classList.add("hidden");
 
+  releasesTabBtn.classList.remove("active");
+  releasesPanelEl.classList.add("hidden");
+
   renderBranchesTree();
+});
+
+releasesTabBtn?.addEventListener("click", async () => {
+  releasesTabBtn.classList.add("active");
+  commitsTabBtn.classList.remove("active");
+  branchesTabBtn.classList.remove("active");
+
+  releasesPanelEl.classList.remove("hidden");
+  commitsPanelEl.classList.add("hidden");
+  branchesPanelEl.classList.add("hidden");
+
+  renderReleaseRepoOptions();
+
+  try {
+    await loadReleasesForSelectedRepo();
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 

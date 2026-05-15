@@ -555,6 +555,48 @@ button:disabled {
   background: rgba(192, 132, 252, 0.12);
 }
 
+.release-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.release-controls select,
+.release-controls input {
+  background: #151b1f;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.release-version-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.release-version-btn {
+  background: #202931;
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.release-preview {
+  white-space: pre-wrap;
+  background: #0f1316;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  overflow: auto;
+  max-height: 520px;
+  line-height: 1.5;
+}
+
 @media (max-width: 800px) {
   .stats-row {
     grid-template-columns: 1fr;

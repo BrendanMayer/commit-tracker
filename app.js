@@ -620,7 +620,7 @@ async function createRelease() {
   releaseVersionInputEl.value = "";
   await loadReleasesForSelectedRepo();
 
-  releasePreviewEl.textContent = release.notes_markdown || "";
+  releasePreviewEl.innerHTML = marked.parse(release.notes_markdown || "");
 }
 
 function renderFeed() {
@@ -1033,7 +1033,7 @@ releaseVersionListEl?.addEventListener("click", (event) => {
 
   if (!release) return;
 
-  releasePreviewEl.textContent = release.notes_markdown || "";
+  releasePreviewEl.innerHTML = marked.parse(release.notes_markdown || "");
 });
 
 activeFiltersEl.addEventListener("click", async (event) => {

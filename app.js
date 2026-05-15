@@ -21,6 +21,7 @@ const branchesPanelEl = document.getElementById("branches-panel");
 const branchesTreeEl = document.getElementById("branches-tree");
 const adminLoginBtn = document.getElementById("admin-login-btn");
 const adminStatusEl = document.getElementById("admin-status");
+const adminLogoutBtn = document.getElementById("admin-logout-btn");
 const releasesTabBtn = document.getElementById("releases-tab-btn");
 const releasesPanelEl = document.getElementById("releases-panel");
 const releaseRepoSelectEl = document.getElementById("release-repo-select");
@@ -28,6 +29,7 @@ const releaseVersionInputEl = document.getElementById("release-version-input");
 const createReleaseBtn = document.getElementById("create-release-btn");
 const releaseVersionListEl = document.getElementById("release-version-list");
 const releasePreviewEl = document.getElementById("release-preview");
+
 
 const PAGE_SIZE = 20;
 
@@ -83,6 +85,10 @@ adminLoginBtn?.addEventListener("click", () => {
   renderAdminStatus();
 
 
+});
+
+adminLogoutBtn?.addEventListener("click", () => {
+  logoutAdmin();
 });
 
 function escapeHtml(str) {
@@ -151,6 +157,14 @@ function renderTags(commit) {
     </div>
   `;
 }
+
+function logoutAdmin() {
+  localStorage.removeItem("upload_api_key");
+
+  updateAdminUI();
+
+  alert("Exited admin mode.");
+} 
 
 function buildQuery(params = {}) {
   const search = new URLSearchParams();
@@ -654,6 +668,9 @@ function renderAdminStatus() {
 
   adminStatusEl.textContent = active ? "Key Saved" : "Viewer mode";
   adminStatusEl.classList.toggle("active", active);
+
+  adminLogoutBtn?.classList.toggle("hidden", !isAdmin());
+  adminLoginBtn?.classList.toggle("hidden", isAdmin());
 }
 
 function renderCommitVideo(commit) {

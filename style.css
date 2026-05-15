@@ -623,6 +623,23 @@ button:disabled {
   border-radius: 6px;
 }
 
+.release-version-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.release-delete-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  padding: 0;
+  background: #3a1515;
+  border-color: #5f2525;
+  color: #ffb4b4;
+  font-size: 16px;
+}
+
 @media (max-width: 800px) {
   .stats-row {
     grid-template-columns: 1fr;

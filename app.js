@@ -572,6 +572,7 @@ function renderReleaseVersions() {
   releaseVersionListEl.innerHTML = releases
     .map(
       (release) => `
+      <div class="release-version-item">
         <button
           type="button"
           class="release-version-btn"
@@ -579,7 +580,21 @@ function renderReleaseVersions() {
         >
           ${escapeHtml(release.version)}
         </button>
-      `
+
+        ${isAdmin()
+          ? `
+              <button
+                type="button"
+                class="release-delete-btn"
+                data-delete-release-id="${escapeHtml(release.id)}"
+              >
+                ×
+              </button>
+            `
+          : ""
+        }
+      </div>
+    `
     )
     .join("");
 }
@@ -1026,6 +1041,41 @@ createReleaseBtn?.addEventListener("click", async () => {
 });
 
 releaseVersionListEl?.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-release-id]");
+
+  if (deleteButton) {
+    event.stopPropagation();
+
+    const releaseId = deleteButton.dataset.deleteReleaseId;
+
+    if (!confirm("Delete this release?")) {
+      return;
+    }
+
+    fetch(`${API_BASE}/api/releases/${releaseId}`, {
+      method: "DELETE",
+      headers: {
+        "x-api-key": getUploadKey(),
+      },
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
+
+        await loadReleasesForSelectedRepo();
+
+        releasePreviewEl.innerHTML =
+          "Select a version to preview patch notes.";
+      })
+      .catch((err) => {
+        console.error(err);
+        alert("Failed to delete release.");
+      });
+
+    return;
+  }
+
   const button = event.target.closest("[data-release-id]");
   if (!button) return;
 

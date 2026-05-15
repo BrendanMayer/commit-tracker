@@ -587,12 +587,13 @@ button:disabled {
 
 .release-preview {
   background: #0f1316;
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 20px;
-  overflow: auto;
-  max-height: 520px;
   line-height: 1.7;
+  min-height: 420px;
+  white-space: normal;
 }
 
 .release-preview h1,

@@ -220,10 +220,12 @@ function renderTags(commit) {
 function logoutAdmin() {
   localStorage.removeItem("upload_api_key");
 
-  updateAdminUI();
+  renderAdminStatus();
+  renderFeed();
+  renderReleaseVersions();
 
   showToast("Exited admin mode.", "info");
-} 
+}
 
 function buildQuery(params = {}) {
   const search = new URLSearchParams();

@@ -29,6 +29,11 @@ const releaseVersionInputEl = document.getElementById("release-version-input");
 const createReleaseBtn = document.getElementById("create-release-btn");
 const releaseVersionListEl = document.getElementById("release-version-list");
 const releasePreviewEl = document.getElementById("release-preview");
+const adminKeyModalEl = document.getElementById("admin-key-modal");
+const adminKeyInputEl = document.getElementById("admin-key-input");
+const saveAdminKeyBtn = document.getElementById("save-admin-key-btn");
+const cancelAdminKeyBtn = document.getElementById("cancel-admin-key-btn");
+const toastEl = document.getElementById("toast");
 
 
 const PAGE_SIZE = 20;
@@ -76,15 +81,69 @@ function isAdmin() {
   return Boolean(getUploadKey());
 }
 
-adminLoginBtn?.addEventListener("click", () => {
-  const key = prompt("Enter upload API key");
+let toastTimeout = null;
 
-  if (!key) return;
+function showToast(message, type = "info") {
+  if (!toastEl) return;
+
+  toastEl.textContent = message;
+  toastEl.className = `toast show toast-${type}`;
+
+  clearTimeout(toastTimeout);
+
+  toastTimeout = setTimeout(() => {
+    toastEl.classList.remove("show");
+    toastEl.classList.add("hidden");
+  }, 2600);
+}
+
+function openAdminModal() {
+  adminKeyModalEl?.classList.remove("hidden");
+  adminKeyInputEl.value = "";
+  setTimeout(() => adminKeyInputEl?.focus(), 0);
+}
+
+function closeAdminModal() {
+  adminKeyModalEl?.classList.add("hidden");
+}
+
+adminLoginBtn?.addEventListener("click", () => {
+  openAdminModal();
+});
+
+saveAdminKeyBtn?.addEventListener("click", () => {
+  const key = adminKeyInputEl?.value.trim();
+
+  if (!key) {
+    showToast("Enter an admin key first.", "error");
+    return;
+  }
 
   localStorage.setItem("upload_api_key", key);
   renderAdminStatus();
+  closeAdminModal();
 
+  showToast("Admin mode enabled.", "success");
+});
 
+cancelAdminKeyBtn?.addEventListener("click", () => {
+  closeAdminModal();
+});
+
+adminKeyModalEl?.addEventListener("click", (event) => {
+  if (event.target === adminKeyModalEl) {
+    closeAdminModal();
+  }
+});
+
+adminKeyInputEl?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    saveAdminKeyBtn?.click();
+  }
+
+  if (event.key === "Escape") {
+    closeAdminModal();
+  }
 });
 
 adminLogoutBtn?.addEventListener("click", () => {
@@ -163,7 +222,7 @@ function logoutAdmin() {
 
   updateAdminUI();
 
-  alert("Exited admin mode.");
+  showToast("Exited admin mode.", "info");
 } 
 
 function buildQuery(params = {}) {
@@ -627,12 +686,12 @@ async function createRelease() {
   const version = releaseVersionInputEl?.value.trim();
 
   if (!repo) {
-    alert("Select a repo first.");
+    showToast("Select a repo first.", "error");
     return;
   }
 
   if (!version) {
-    alert("Enter a version.");
+    showToast("Enter a version.", "error");
     return;
   }
 
@@ -784,7 +843,7 @@ feedEl.addEventListener("drop", async (event) => {
   const file = event.dataTransfer.files[0];
 
   if (!file || !file.type.startsWith("video/")) {
-    alert("Drop a video file.");
+    showToast("Drop a video file.", "error");
     return;
   }
 
@@ -804,7 +863,7 @@ feedEl.addEventListener("drop", async (event) => {
 
   renderFeed();
 
-  alert("Video uploaded and attached to commit.");
+  showToast("Video uploaded and attached to commit.", "success");
 });
 
 feedEl.addEventListener("click", async (event) => {
@@ -835,7 +894,7 @@ feedEl.addEventListener("click", async (event) => {
     renderFeed();
   } catch (err) {
     console.error(err);
-    alert("Failed to remove video.");
+    showToast("Failed to remove video.", "error");
   }
 });
 
@@ -1054,7 +1113,7 @@ releaseRepoSelectEl?.addEventListener("change", async () => {
 
 createReleaseBtn?.addEventListener("click", async () => {
   if (!isAdmin()) {
-    alert("Admin mode required.");
+    showToast("Admin mode required.", "error");
     return;
   }
 
@@ -1062,7 +1121,7 @@ createReleaseBtn?.addEventListener("click", async () => {
     await createRelease();
   } catch (err) {
     console.error(err);
-    alert("Failed to create release.");
+    showToast("Failed to create release.", "error");
   }
 });
 
@@ -1096,7 +1155,7 @@ releaseVersionListEl?.addEventListener("click", (event) => {
       })
       .catch((err) => {
         console.error(err);
-        alert("Failed to delete release.");
+        showToast("Failed to delete release.", "error");
       });
 
     return;

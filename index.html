@@ -117,6 +117,21 @@
   </div>
 
   <script src="./config.js"></script>
+  <div id="admin-key-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>Enter admin key</h3>
+      <p class="sub">Required for uploads, release creation, and admin actions.</p>
+
+      <input id="admin-key-input" class="modal-input" type="password" placeholder="Upload API key" autocomplete="off" />
+
+      <div class="modal-actions">
+        <button id="save-admin-key-btn" type="button">Save key</button>
+        <button id="cancel-admin-key-btn" type="button" class="secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="./app.js"></script>
 </body>

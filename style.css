@@ -520,9 +520,17 @@ button:disabled {
 }
 
 .tab-btn.active {
-  background: #263220;
-  color: var(--green-2);
-  border-color: #3e5232;
+  background: linear-gradient(
+    135deg,
+    rgba(137,194,75,0.22),
+    rgba(137,194,75,0.08)
+  );
+
+  border-color: rgba(137,194,75,0.4);
+
+  box-shadow:
+    0 0 0 1px rgba(137,194,75,0.08),
+    0 8px 24px rgba(137,194,75,0.16);
 }
 
 .branches-tree {
@@ -649,10 +657,10 @@ button:disabled {
 }
 
 .commit-video video {
-  display: block;
-  width: 100%;
-  max-height: 360px;
-  background: #000;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 14px 32px rgba(0,0,0,0.35);
 }
 
 .remove-video-btn {
@@ -700,9 +708,10 @@ button:disabled {
 }
 
 .release-version-btn {
-  background: #202931;
-  color: var(--text);
-  border-color: var(--border);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 10px 16px;
 }
 
 .release-preview {

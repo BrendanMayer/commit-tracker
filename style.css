@@ -533,6 +533,22 @@ button:disabled {
     0 8px 24px rgba(137,194,75,0.16);
 }
 
+.tab-view {
+  animation: tabPanelIn 0.22s ease both;
+}
+
+@keyframes tabPanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .branches-tree {
   display: grid;
   gap: 16px;

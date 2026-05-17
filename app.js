@@ -44,6 +44,7 @@ let releases = [];
 let stats = null;
 let pagination = null;
 let source = null;
+let newestLiveCommitSha = null;
 
 const state = {
   repo: "",
@@ -221,6 +222,7 @@ function logoutAdmin() {
   localStorage.removeItem("upload_api_key");
 
   renderAdminStatus();
+  
   renderFeed();
   renderReleaseVersions();
 
@@ -392,7 +394,7 @@ function commitCard(c) {
   );
 
   return `
-    <article class="commit-card" data-commit-sha="${escapeHtml(c.sha)}">
+    <article class="commit-card ${c.sha === newestLiveCommitSha ? "new-commit" : ""}" data-commit-sha="${escapeHtml(c.sha)}">
       <img class="avatar" src="${avatar}" alt="${author}" />
       <div>
         <div class="commit-top">
@@ -729,6 +731,17 @@ function renderFeed() {
   }
 
   feedEl.innerHTML = commits.map(commitCard).join("");
+
+  if (newestLiveCommitSha) {
+    setTimeout(() => {
+      newestLiveCommitSha = null;
+      const card = feedEl.querySelector(".new-commit");
+
+      if (card) {
+        card.classList.remove("new-commit");
+      }
+    }, 1200);
+  }
 }
 
 function renderAdminStatus() {
@@ -1059,6 +1072,7 @@ function addCommitLive(commit) {
   renderStats();
   renderChart();
   renderActiveFilters();
+  newestLiveCommitSha = commit.sha;
   renderFeed();
   renderBranchesTree();
   renderPagination();

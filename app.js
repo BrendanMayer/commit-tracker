@@ -260,6 +260,7 @@ function renderStats() {
 
 function renderChart() {
   chartEl.innerHTML = "";
+
   const daily = stats?.daily || [];
   const tail = daily.slice(-120);
   const max = Math.max(1, ...tail.map((d) => d.count));
@@ -273,7 +274,15 @@ function renderChart() {
     const bar = document.createElement("div");
     bar.className = "bar";
     bar.style.height = `${Math.max(8, (day.count / max) * 100)}%`;
-    bar.title = `${day.day}: ${day.count} commit(s)`;
+
+    bar.innerHTML = `
+      <div class="bar-tooltip">
+        <strong>${formatNumber(day.count)}</strong>
+        <span>commit${day.count === 1 ? "" : "s"}</span>
+        <small>${escapeHtml(day.day)}</small>
+      </div>
+    `;
+
     chartEl.appendChild(bar);
   }
 }

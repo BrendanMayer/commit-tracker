@@ -222,7 +222,7 @@ function logoutAdmin() {
   localStorage.removeItem("upload_api_key");
 
   renderAdminStatus();
-  
+
   renderFeed();
   renderReleaseVersions();
 
@@ -480,7 +480,8 @@ function buildBranchesByRepo() {
       latestTimestamp: null,
       contributor: "Unknown",
       mergedToMain: false,
-      mergedFromMain: false
+      mergedFromMain: false,
+      protected: Boolean(branchInfo.protected)
     });
   }
 
@@ -559,8 +560,25 @@ function renderBranchesTree() {
             .map((branch) => {
               const badges = [];
 
-              if (branch.mergedToMain) badges.push(`<span class="branch-badge merged">merged to main</span>`);
-              if (branch.mergedFromMain) badges.push(`<span class="branch-badge from-main">from main</span>`);
+              if (branch.type === "main") {
+                badges.push(`<span class="branch-badge main-badge">mainline</span>`);
+              }
+
+              if (branch.protected) {
+                badges.push(`<span class="branch-badge protected">protected</span>`);
+              }
+
+              if (branch.commitCount > 0) {
+                badges.push(`<span class="branch-badge active-branch">active</span>`);
+              }
+
+              if (branch.mergedToMain) {
+                badges.push(`<span class="branch-badge merged">merged to main</span>`);
+              }
+
+              if (branch.mergedFromMain) {
+                badges.push(`<span class="branch-badge from-main">from main</span>`);
+              }
 
               return `
                 <div class="branch-tree-row branch-type-${escapeHtml(branch.type)}">
@@ -594,7 +612,10 @@ function renderBranchesTree() {
 
       return `
         <div class="repo-tree">
-          <div class="repo-tree-title">${escapeHtml(repoName)}</div>
+          <div class="repo-tree-title">
+            <span class="repo-tree-orb"></span>
+            <span>${escapeHtml(repoName)}</span>
+          </div>
           ${groups}
         </div>
       `;

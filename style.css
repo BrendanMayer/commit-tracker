@@ -781,6 +781,10 @@ button:disabled {
   backdrop-filter: blur(8px);
 }
 
+.modal-backdrop.hidden {
+  display: none;
+}
+
 .modal-card {
   width: min(420px, calc(100% - 32px));
   padding: 22px;
@@ -873,6 +877,10 @@ button:disabled {
   border-color: rgba(192, 132, 252, 0.45);
   background: linear-gradient(180deg, rgba(42, 28, 60, 0.98), #151b1f);
   color: #C084FC;
+}
+
+.toast.hidden {
+  display: none;
 }
 
 @media (max-width: 800px) {

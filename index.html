@@ -119,10 +119,24 @@
   <script src="./config.js"></script>
   <div id="admin-key-modal" class="modal-backdrop hidden">
     <div class="modal-card">
-      <h3>Enter admin key</h3>
+      <h3>Admin Login</h3>
       <p class="sub">Required for uploads, release creation, and admin actions.</p>
 
-      <input id="admin-key-input" class="modal-input" type="password" placeholder="Upload API key" autocomplete="off" />
+      <input
+        id="admin-username-input"
+        class="modal-input"
+        type="text"
+        placeholder="Username"
+        autocomplete="username"
+      />
+
+      <input
+        id="admin-password-input"
+        class="modal-input"
+        type="password"
+        placeholder="Password"
+        autocomplete="current-password"
+      />
 
       <div class="modal-actions">
         <button id="save-admin-key-btn" type="button">Save key</button>

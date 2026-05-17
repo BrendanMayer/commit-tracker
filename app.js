@@ -1,4 +1,5 @@
 const API_BASE = window.APP_CONFIG.API_BASE.replace(/\/+$/, "");
+
 const feedEl = document.getElementById("feed");
 const chartEl = document.getElementById("chart");
 const headlineEl = document.getElementById("headline");
@@ -15,13 +16,16 @@ const paginationSummaryEl = document.getElementById("pagination-summary");
 const activeFiltersEl = document.getElementById("active-filters");
 const commitsPanelEl = document.getElementById("commits-panel");
 const panelFooterEl = document.getElementById("panel-footer");
+
 const commitsTabBtn = document.getElementById("commits-tab-btn");
 const branchesTabBtn = document.getElementById("branches-tab-btn");
 const branchesPanelEl = document.getElementById("branches-panel");
 const branchesTreeEl = document.getElementById("branches-tree");
+
 const adminLoginBtn = document.getElementById("admin-login-btn");
 const adminStatusEl = document.getElementById("admin-status");
 const adminLogoutBtn = document.getElementById("admin-logout-btn");
+
 const releasesTabBtn = document.getElementById("releases-tab-btn");
 const releasesPanelEl = document.getElementById("releases-panel");
 const releaseRepoSelectEl = document.getElementById("release-repo-select");
@@ -29,18 +33,21 @@ const releaseVersionInputEl = document.getElementById("release-version-input");
 const createReleaseBtn = document.getElementById("create-release-btn");
 const releaseVersionListEl = document.getElementById("release-version-list");
 const releasePreviewEl = document.getElementById("release-preview");
+
 const adminKeyModalEl = document.getElementById("admin-key-modal");
-const adminKeyInputEl = document.getElementById("admin-key-input");
+const adminUsernameInputEl = document.getElementById("admin-username-input");
+const adminPasswordInputEl = document.getElementById("admin-password-input");
 const saveAdminKeyBtn = document.getElementById("save-admin-key-btn");
 const cancelAdminKeyBtn = document.getElementById("cancel-admin-key-btn");
+
 const toastEl = document.getElementById("toast");
+
 const contributorModalEl = document.getElementById("contributor-modal");
 const contributorTitleEl = document.getElementById("contributor-title");
 const contributorSubtitleEl = document.getElementById("contributor-subtitle");
 const contributorStatsEl = document.getElementById("contributor-stats");
 const contributorRecentEl = document.getElementById("contributor-recent");
 const closeContributorBtn = document.getElementById("close-contributor-btn");
-
 
 const PAGE_SIZE = 20;
 
@@ -80,12 +87,21 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
-function getUploadKey() {
-  return localStorage.getItem("upload_api_key") || "";
+function getAdminToken() {
+  return sessionStorage.getItem("admin_token") || "";
 }
 
 function isAdmin() {
-  return Boolean(getUploadKey());
+  return Boolean(getAdminToken());
+}
+
+function getAuthHeaders(extraHeaders = {}) {
+  const token = getAdminToken();
+
+  return {
+    ...extraHeaders,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
 let toastTimeout = null;
@@ -106,31 +122,81 @@ function showToast(message, type = "info") {
 
 function openAdminModal() {
   adminKeyModalEl?.classList.remove("hidden");
-  adminKeyInputEl.value = "";
-  setTimeout(() => adminKeyInputEl?.focus(), 0);
+
+  if (adminUsernameInputEl) adminUsernameInputEl.value = "";
+  if (adminPasswordInputEl) adminPasswordInputEl.value = "";
+
+  setTimeout(() => adminUsernameInputEl?.focus(), 0);
 }
 
 function closeAdminModal() {
   adminKeyModalEl?.classList.add("hidden");
 }
 
+async function loginAdmin(username, password) {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      username,
+      password,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Login failed");
+  }
+
+  const data = await res.json();
+
+  if (!data.token) {
+    throw new Error("Login response did not include a token");
+  }
+
+  sessionStorage.setItem("admin_token", data.token);
+
+  return data;
+}
+
+function logoutAdmin() {
+  sessionStorage.removeItem("admin_token");
+
+  renderAdminStatus();
+  renderFeed();
+  renderReleaseVersions();
+
+  showToast("Exited admin mode.", "info");
+}
+
 adminLoginBtn?.addEventListener("click", () => {
   openAdminModal();
 });
 
-saveAdminKeyBtn?.addEventListener("click", () => {
-  const key = adminKeyInputEl?.value.trim();
+saveAdminKeyBtn?.addEventListener("click", async () => {
+  const username = adminUsernameInputEl?.value.trim();
+  const password = adminPasswordInputEl?.value;
 
-  if (!key) {
-    showToast("Enter an admin key first.", "error");
+  if (!username || !password) {
+    showToast("Enter username and password.", "error");
     return;
   }
 
-  localStorage.setItem("upload_api_key", key);
-  renderAdminStatus();
-  closeAdminModal();
+  try {
+    await loginAdmin(username, password);
 
-  showToast("Admin mode enabled.", "success");
+    renderAdminStatus();
+    renderFeed();
+    renderReleaseVersions();
+    closeAdminModal();
+
+    showToast("Admin mode enabled.", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("Invalid admin login.", "error");
+  }
 });
 
 cancelAdminKeyBtn?.addEventListener("click", () => {
@@ -143,14 +209,16 @@ adminKeyModalEl?.addEventListener("click", (event) => {
   }
 });
 
-adminKeyInputEl?.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    saveAdminKeyBtn?.click();
-  }
+[adminUsernameInputEl, adminPasswordInputEl].forEach((input) => {
+  input?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      saveAdminKeyBtn?.click();
+    }
 
-  if (event.key === "Escape") {
-    closeAdminModal();
-  }
+    if (event.key === "Escape") {
+      closeAdminModal();
+    }
+  });
 });
 
 adminLogoutBtn?.addEventListener("click", () => {
@@ -170,9 +238,6 @@ function getCommitTags(commit) {
   const branch = String(commit.branch || "").toLowerCase();
   const message = String(commit.message || "").toLowerCase();
 
-  // Merge tags override all others
-
-  // Branch merged INTO main
   if (
     message.includes("-> main") ||
     message.startsWith("merge pull request")
@@ -180,22 +245,43 @@ function getCommitTags(commit) {
     return ["merge-to-main"];
   }
 
-  // Branch created FROM main
   if (message.includes("main ->")) {
     return ["merge-from-main"];
   }
 
   const tags = new Set();
 
-  if (branch.startsWith("cleanup/") || branch.startsWith("refinement")) tags.add("cleanup");
-  if (branch.startsWith("feature/") || branch.startsWith("features/") || branch.startsWith("feat/")) {
+  if (branch.startsWith("cleanup/") || branch.startsWith("refinement")) {
+    tags.add("cleanup");
+  }
+
+  if (
+    branch.startsWith("feature/") ||
+    branch.startsWith("features/") ||
+    branch.startsWith("feat/")
+  ) {
     tags.add("feature");
   }
-  if (branch.startsWith("bugfix/") || branch.startsWith("fix/")) tags.add("bugfix");
 
-  if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) tags.add("bugfix");
-  if (/\bfeat\b|\bfeature(s)?\b|\badd(ed|s|ing)?\b/.test(message)) tags.add("feature");
-  if (/\bcleanup\b|\bclean up\b|\bchange(s|d)?\b|\brefinement\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(message)) tags.add("cleanup");
+  if (branch.startsWith("bugfix/") || branch.startsWith("fix/")) {
+    tags.add("bugfix");
+  }
+
+  if (/\bfix(ed|es|ing)?\b|\bbug\b|\bbugfix\b/.test(message)) {
+    tags.add("bugfix");
+  }
+
+  if (/\bfeat\b|\bfeature(s)?\b|\badd(ed|s|ing)?\b/.test(message)) {
+    tags.add("feature");
+  }
+
+  if (
+    /\bcleanup\b|\bclean up\b|\bchange(s|d)?\b|\brefinement\b|\bupdat(e|ed|es|ing)?\b|\brefactor(ed|s|ing)?\b/.test(
+      message
+    )
+  ) {
+    tags.add("cleanup");
+  }
 
   if (tags.size === 0) {
     tags.add("feature");
@@ -212,27 +298,16 @@ function renderTags(commit) {
   return `
     <div class="commit-tags">
       ${tags
-      .map(
-        (tag) => `
+        .map(
+          (tag) => `
             <span class="tag tag-${escapeHtml(tag)}">
               #${escapeHtml(tag)}
             </span>
           `
-      )
-      .join("")}
+        )
+        .join("")}
     </div>
   `;
-}
-
-function logoutAdmin() {
-  localStorage.removeItem("upload_api_key");
-
-  renderAdminStatus();
-
-  renderFeed();
-  renderReleaseVersions();
-
-  showToast("Exited admin mode.", "info");
 }
 
 function buildQuery(params = {}) {
@@ -250,12 +325,16 @@ function buildQuery(params = {}) {
 
 function updateUrl() {
   const query = buildQuery();
-  const nextUrl = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+  const nextUrl = query
+    ? `${window.location.pathname}?${query}`
+    : window.location.pathname;
+
   window.history.replaceState({}, "", nextUrl);
 }
 
 function readStateFromUrl() {
   const params = new URLSearchParams(window.location.search);
+
   state.repo = params.get("repo") || "";
   state.branch = params.get("branch") || "";
   state.owner = params.get("owner") || "";
@@ -281,7 +360,7 @@ function commitMatchesState(commit) {
       commit.sender_login,
       commit.author_name,
       commit.author_email,
-      contributor
+      contributor,
     ]
       .filter(Boolean)
       .map((v) => String(v).toLowerCase());
@@ -300,30 +379,33 @@ function renderHeadline() {
   const totalDays = daily.length || 0;
   const cpd = totalDays ? (total / totalDays).toFixed(2) : "0.00";
 
-  headlineEl.textContent = `${formatNumber(total)} commits over ${formatNumber(totalDays)} days · ${cpd} cpd`;
+  headlineEl.textContent = `${formatNumber(total)} commits over ${formatNumber(
+    totalDays
+  )} days · ${cpd} cpd`;
 
   const activeFilters = [
     state.repo,
     state.branch,
     state.owner,
-    state.contributor
+    state.contributor,
   ].filter(Boolean).length;
 
   const filterText = activeFilters
     ? ` · ${activeFilters} filter${activeFilters === 1 ? "" : "s"} active`
     : "";
 
-  sublineEl.textContent =
-    `Tracking started ${stats?.tracking_started_at
+  sublineEl.textContent = `Tracking started ${
+    stats?.tracking_started_at
       ? new Date(stats.tracking_started_at).toLocaleString()
       : "unknown"
-    }${filterText}`;
+  }${filterText}`;
 }
 
 function renderStats() {
   totalCommitsEl.textContent = formatNumber(stats?.total_commits || 0);
   totalReposEl.textContent = formatNumber(stats?.total_repos || 0);
   totalAuthorsEl.textContent = formatNumber(stats?.total_authors || 0);
+
   renderHeadline();
 }
 
@@ -359,11 +441,24 @@ function renderChart() {
 function renderActiveFilters() {
   const filters = [];
 
-  if (state.repo) filters.push({ label: "Repo", value: state.repo, key: "repo" });
-  if (state.branch) filters.push({ label: "Branch", value: state.branch, key: "branch" });
-  if (state.owner) filters.push({ label: "Owner", value: state.owner, key: "owner" });
+  if (state.repo) {
+    filters.push({ label: "Repo", value: state.repo, key: "repo" });
+  }
+
+  if (state.branch) {
+    filters.push({ label: "Branch", value: state.branch, key: "branch" });
+  }
+
+  if (state.owner) {
+    filters.push({ label: "Owner", value: state.owner, key: "owner" });
+  }
+
   if (state.contributor) {
-    filters.push({ label: "Contributor", value: state.contributor, key: "contributor" });
+    filters.push({
+      label: "Contributor",
+      value: state.contributor,
+      key: "contributor",
+    });
   }
 
   if (!filters.length) {
@@ -396,12 +491,15 @@ function commitCard(c) {
   const msg = escapeHtml(c.message || "");
   const avatar = escapeHtml(
     c.sender_avatar_url ||
-    "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+      "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
   );
 
   return `
-    <article class="commit-card ${c.sha === newestLiveCommitSha ? "new-commit" : ""}" data-commit-sha="${escapeHtml(c.sha)}">
+    <article class="commit-card ${
+      c.sha === newestLiveCommitSha ? "new-commit" : ""
+    }" data-commit-sha="${escapeHtml(c.sha)}">
       <img class="avatar" src="${avatar}" alt="${author}" />
+
       <div>
         <div class="commit-top">
           <button
@@ -449,7 +547,13 @@ function getBranchType(branch) {
   const value = String(branch || "").toLowerCase();
 
   if (value === "main") return "main";
-  if (value.startsWith("feature/") || value.startsWith("features/") || value.startsWith("feat/")) return "feature";
+  if (
+    value.startsWith("feature/") ||
+    value.startsWith("features/") ||
+    value.startsWith("feat/")
+  ) {
+    return "feature";
+  }
   if (value.startsWith("bugfix/") || value.startsWith("fix/")) return "bugfix";
   if (value.startsWith("cleanup/")) return "cleanup";
   if (value.startsWith("hotfix/")) return "hotfix";
@@ -487,7 +591,7 @@ function buildBranchesByRepo() {
       contributor: "Unknown",
       mergedToMain: false,
       mergedFromMain: false,
-      protected: Boolean(branchInfo.protected)
+      protected: Boolean(branchInfo.protected),
     });
   }
 
@@ -520,10 +624,7 @@ function buildBranchesByRepo() {
 
     const message = String(commit.message || "").toLowerCase();
 
-    if (
-      message.includes("-> main") ||
-      message.startsWith("merge pull request")
-    ) {
+    if (message.includes("-> main") || message.startsWith("merge pull request")) {
       item.mergedToMain = true;
     }
 
@@ -547,19 +648,19 @@ function renderBranchesTree() {
 
   branchesTreeEl.innerHTML = [...repos.entries()]
     .map(([repoName, branchesMap]) => {
-      const branches = [...branchesMap.values()].sort((a, b) => {
+      const branchItems = [...branchesMap.values()].sort((a, b) => {
         if (a.type === "main") return -1;
         if (b.type === "main") return 1;
         return a.branch.localeCompare(b.branch);
       });
 
-      const grouped = branches.reduce((acc, branch) => {
+      const grouped = branchItems.reduce((acc, branch) => {
         if (!acc[branch.type]) acc[branch.type] = [];
         acc[branch.type].push(branch);
         return acc;
       }, {});
 
-      const groups = ["main", "feature", "features", "bugfix", "cleanup", "hotfix", "other"]
+      const groups = ["main", "feature", "bugfix", "cleanup", "hotfix", "other"]
         .filter((type) => grouped[type]?.length)
         .map((type) => {
           const items = grouped[type]
@@ -598,7 +699,11 @@ function renderBranchesTree() {
 
                     <div class="branch-tree-meta">
                       ${formatNumber(branch.commitCount)} commit${branch.commitCount === 1 ? "" : "s"}
-                      ${branch.latestTimestamp ? `· last active ${timeAgo(branch.latestTimestamp)}` : "· no recent commits"}
+                      ${
+                        branch.latestTimestamp
+                          ? `· last active ${timeAgo(branch.latestTimestamp)}`
+                          : "· no recent commits"
+                      }
                       · ${escapeHtml(branch.contributor)}
                     </div>
                   </div>
@@ -622,6 +727,7 @@ function renderBranchesTree() {
             <span class="repo-tree-orb"></span>
             <span>${escapeHtml(repoName)}</span>
           </div>
+
           ${groups}
         </div>
       `;
@@ -646,11 +752,16 @@ function getKnownReposFromData() {
 function renderReleaseRepoOptions() {
   if (!releaseRepoSelectEl) return;
 
+  const currentValue = releaseRepoSelectEl.value;
   const repos = getKnownReposFromData();
 
   releaseRepoSelectEl.innerHTML = repos
     .map((repo) => `<option value="${escapeHtml(repo)}">${escapeHtml(repo)}</option>`)
     .join("");
+
+  if (currentValue && repos.includes(currentValue)) {
+    releaseRepoSelectEl.value = currentValue;
+  }
 }
 
 async function loadReleasesForSelectedRepo() {
@@ -677,7 +788,8 @@ function renderReleaseVersions() {
   if (!releaseVersionListEl) return;
 
   if (!releases.length) {
-    releaseVersionListEl.innerHTML = `<div class="empty">No releases for this repo yet.</div>`;
+    releaseVersionListEl.innerHTML =
+      `<div class="empty">No releases for this repo yet.</div>`;
     releasePreviewEl.textContent = "Create a version to generate patch notes.";
     return;
   }
@@ -685,29 +797,30 @@ function renderReleaseVersions() {
   releaseVersionListEl.innerHTML = releases
     .map(
       (release) => `
-      <div class="release-version-item">
-        <button
-          type="button"
-          class="release-version-btn"
-          data-release-id="${escapeHtml(release.id)}"
-        >
-          ${escapeHtml(release.version)}
-        </button>
+        <div class="release-version-item">
+          <button
+            type="button"
+            class="release-version-btn"
+            data-release-id="${escapeHtml(release.id)}"
+          >
+            ${escapeHtml(release.version)}
+          </button>
 
-        ${isAdmin()
-          ? `
-              <button
-                type="button"
-                class="release-delete-btn"
-                data-delete-release-id="${escapeHtml(release.id)}"
-              >
-                ×
-              </button>
-            `
-          : ""
-        }
-      </div>
-    `
+          ${
+            isAdmin()
+              ? `
+                <button
+                  type="button"
+                  class="release-delete-btn"
+                  data-delete-release-id="${escapeHtml(release.id)}"
+                >
+                  ×
+                </button>
+              `
+              : ""
+          }
+        </div>
+      `
     )
     .join("");
 }
@@ -728,10 +841,9 @@ async function createRelease() {
 
   const res = await fetch(`${API_BASE}/api/releases`, {
     method: "POST",
-    headers: {
+    headers: getAuthHeaders({
       "content-type": "application/json",
-      "x-api-key": getUploadKey(),
-    },
+    }),
     body: JSON.stringify({
       repo_full_name: repo,
       version,
@@ -746,6 +858,7 @@ async function createRelease() {
   const release = await res.json();
 
   releaseVersionInputEl.value = "";
+
   await loadReleasesForSelectedRepo();
 
   releasePreviewEl.innerHTML = marked.parse(release.notes_markdown || "");
@@ -776,11 +889,11 @@ function renderAdminStatus() {
 
   const active = isAdmin();
 
-  adminStatusEl.textContent = active ? "Key Saved" : "Viewer mode";
+  adminStatusEl.textContent = active ? "Admin mode" : "Viewer mode";
   adminStatusEl.classList.toggle("active", active);
 
-  adminLogoutBtn?.classList.toggle("hidden", !isAdmin());
-  adminLoginBtn?.classList.toggle("hidden", isAdmin());
+  adminLogoutBtn?.classList.toggle("hidden", !active);
+  adminLoginBtn?.classList.toggle("hidden", active);
 }
 
 function renderCommitVideo(commit) {
@@ -793,8 +906,9 @@ function renderCommitVideo(commit) {
         Your browser does not support the video tag.
       </video>
 
-      ${isAdmin()
-      ? `
+      ${
+        isAdmin()
+          ? `
             <button
               type="button"
               class="remove-video-btn secondary-btn"
@@ -803,16 +917,14 @@ function renderCommitVideo(commit) {
               Remove video
             </button>
           `
-      : ""
-    }
+          : ""
+      }
     </div>
   `;
 }
 
 async function uploadVideo(file) {
-  const key = getUploadKey();
-
-  if (!key) {
+  if (!isAdmin()) {
     throw new Error("Not authorized");
   }
 
@@ -821,10 +933,8 @@ async function uploadVideo(file) {
 
   const res = await fetch(`${API_BASE}/api/videos`, {
     method: "POST",
-    headers: {
-      "x-api-key": key
-    },
-    body: formData
+    headers: getAuthHeaders(),
+    body: formData,
   });
 
   if (!res.ok) {
@@ -836,17 +946,19 @@ async function uploadVideo(file) {
 }
 
 async function attachVideoToCommit(sha, uploaded) {
-  const res = await fetch(`${API_BASE}/api/commits/${encodeURIComponent(sha)}/video`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": getUploadKey(),
-    },
-    body: JSON.stringify({
-      url: uploaded.url,
-      filename: uploaded.filename,
-    }),
-  });
+  const res = await fetch(
+    `${API_BASE}/api/commits/${encodeURIComponent(sha)}/video`,
+    {
+      method: "POST",
+      headers: getAuthHeaders({
+        "content-type": "application/json",
+      }),
+      body: JSON.stringify({
+        url: uploaded.url,
+        filename: uploaded.filename,
+      }),
+    }
+  );
 
   if (!res.ok) {
     throw new Error("Failed to attach video to commit");
@@ -870,8 +982,13 @@ function openContributorProfile(name) {
     (commit) => getContributorName(commit) === name
   );
 
-  const repos = new Set(personCommits.map((commit) => commit.repo_full_name).filter(Boolean));
-  const branches = new Set(personCommits.map((commit) => commit.branch).filter(Boolean));
+  const repos = new Set(
+    personCommits.map((commit) => commit.repo_full_name).filter(Boolean)
+  );
+
+  const branchSet = new Set(
+    personCommits.map((commit) => commit.branch).filter(Boolean)
+  );
 
   const tagCounts = {};
 
@@ -882,7 +999,9 @@ function openContributorProfile(name) {
   });
 
   contributorTitleEl.textContent = name;
-  contributorSubtitleEl.textContent = `${personCommits.length} commit${personCommits.length === 1 ? "" : "s"} in the current view`;
+  contributorSubtitleEl.textContent = `${personCommits.length} commit${
+    personCommits.length === 1 ? "" : "s"
+  } in the current view`;
 
   contributorStatsEl.innerHTML = `
     <div class="mini-stat">
@@ -896,21 +1015,27 @@ function openContributorProfile(name) {
     </div>
 
     <div class="mini-stat">
-      <strong>${formatNumber(branches.size)}</strong>
+      <strong>${formatNumber(branchSet.size)}</strong>
       <span>Branches</span>
     </div>
   `;
 
   const tagHtml = Object.entries(tagCounts)
-    .map(([tag, count]) => `<span class="tag tag-${escapeHtml(tag)}">#${escapeHtml(tag)} × ${count}</span>`)
+    .map(
+      ([tag, count]) =>
+        `<span class="tag tag-${escapeHtml(tag)}">#${escapeHtml(tag)} × ${count}</span>`
+    )
     .join("");
 
-  const recentHtml = personCommits.slice(0, 8)
+  const recentHtml = personCommits
+    .slice(0, 8)
     .map(
       (commit) => `
         <div class="contributor-commit">
           <strong>${escapeHtml(commit.message)}</strong>
-          <span>${escapeHtml(commit.repo_full_name)} · ${escapeHtml(commit.branch)} · ${timeAgo(commit.timestamp)}</span>
+          <span>${escapeHtml(commit.repo_full_name)} · ${escapeHtml(
+            commit.branch
+          )} · ${timeAgo(commit.timestamp)}</span>
         </div>
       `
     )
@@ -918,13 +1043,15 @@ function openContributorProfile(name) {
 
   contributorRecentEl.innerHTML = `
     <h4>Tag mix</h4>
-    <div class="commit-tags">${tagHtml || `<span class="muted-inline">No tags</span>`}</div>
+    <div class="commit-tags">
+      ${tagHtml || `<span class="muted-inline">No tags</span>`}
+    </div>
 
     <h4>Recent commits</h4>
     ${recentHtml || `<div class="empty">No commits found.</div>`}
   `;
 
-  contributorModalEl.classList.remove("hidden");
+  contributorModalEl?.classList.remove("hidden");
 }
 
 feedEl.addEventListener("dragover", (event) => {
@@ -961,23 +1088,28 @@ feedEl.addEventListener("drop", async (event) => {
     return;
   }
 
-  const uploaded = await uploadVideo(file);
-  const sha = card.dataset.commitSha;
+  try {
+    const uploaded = await uploadVideo(file);
+    const sha = card.dataset.commitSha;
 
-  await attachVideoToCommit(sha, uploaded);
+    await attachVideoToCommit(sha, uploaded);
 
-  const commit = commits.find((c) => c.sha === sha);
+    const commit = commits.find((c) => c.sha === sha);
 
-  if (commit) {
-    commit.video = {
-      url: uploaded.url,
-      filename: uploaded.filename,
-    };
+    if (commit) {
+      commit.video = {
+        url: uploaded.url,
+        filename: uploaded.filename,
+      };
+    }
+
+    renderFeed();
+
+    showToast("Video uploaded and attached to commit.", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to upload video.", "error");
   }
-
-  renderFeed();
-
-  showToast("Video uploaded and attached to commit.", "success");
 });
 
 feedEl.addEventListener("click", async (event) => {
@@ -988,12 +1120,13 @@ feedEl.addEventListener("click", async (event) => {
   const sha = button.dataset.removeVideoSha;
 
   try {
-    const res = await fetch(`${API_BASE}/api/commits/${encodeURIComponent(sha)}/video`, {
-      method: "DELETE",
-      headers: {
-        "x-api-key": getUploadKey(),
-      },
-    });
+    const res = await fetch(
+      `${API_BASE}/api/commits/${encodeURIComponent(sha)}/video`,
+      {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      }
+    );
 
     if (!res.ok) {
       throw new Error("Failed to remove video");
@@ -1006,6 +1139,8 @@ feedEl.addEventListener("click", async (event) => {
     }
 
     renderFeed();
+
+    showToast("Video removed from commit.", "success");
   } catch (err) {
     console.error(err);
     showToast("Failed to remove video.", "error");
@@ -1013,7 +1148,7 @@ feedEl.addEventListener("click", async (event) => {
 });
 
 closeContributorBtn?.addEventListener("click", () => {
-  contributorModalEl.classList.add("hidden");
+  contributorModalEl?.classList.add("hidden");
 });
 
 contributorModalEl?.addEventListener("click", (event) => {
@@ -1028,7 +1163,9 @@ function renderPagination() {
   const totalItems = pagination?.total_items || 0;
 
   pageIndicatorEl.textContent = `Page ${page} of ${totalPages}`;
-  paginationSummaryEl.textContent = `${formatNumber(totalItems)} result${totalItems === 1 ? "" : "s"}`;
+  paginationSummaryEl.textContent = `${formatNumber(totalItems)} result${
+    totalItems === 1 ? "" : "s"
+  }`;
 
   prevPageBtn.disabled = !pagination?.has_prev;
   nextPageBtn.disabled = !pagination?.has_next;
@@ -1038,7 +1175,7 @@ async function loadData() {
   const query = buildQuery({ page_size: state.page_size });
 
   const bootstrapRes = await fetch(`${API_BASE}/api/bootstrap?${query}`, {
-    cache: "no-store"
+    cache: "no-store",
   });
 
   if (!bootstrapRes.ok) {
@@ -1053,7 +1190,7 @@ async function loadData() {
 
   try {
     const branchesRes = await fetch(`${API_BASE}/api/branches`, {
-      cache: "no-store"
+      cache: "no-store",
     });
 
     if (branchesRes.ok) {
@@ -1078,6 +1215,7 @@ async function loadData() {
   if (releaseRepoSelectEl?.value) {
     await loadReleasesForSelectedRepo();
   }
+
   renderPagination();
   updateUrl();
   setupStickyFooterVisibility();
@@ -1145,7 +1283,7 @@ function addCommitLive(commit) {
       total_commits: 0,
       total_repos: 0,
       total_authors: 0,
-      daily: []
+      daily: [],
     };
   }
 
@@ -1167,6 +1305,7 @@ function addCommitLive(commit) {
   const authorSet = new Set(
     commits.map((c) => c.contributor || c.author_name || c.sender_login || "Unknown")
   );
+
   stats.total_authors = Math.max(stats.total_authors, authorSet.size);
 
   if (pagination) {
@@ -1181,7 +1320,9 @@ function addCommitLive(commit) {
   renderStats();
   renderChart();
   renderActiveFilters();
+
   newestLiveCommitSha = commit.sha;
+
   renderFeed();
   renderBranchesTree();
   renderPagination();
@@ -1192,7 +1333,6 @@ function setupStickyFooterVisibility() {
 
   function updateStickyFooter() {
     const panelRect = commitsPanelEl.getBoundingClientRect();
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
 
     const panelTopReached = panelRect.top <= 24;
     const panelStillVisible = panelRect.bottom >= 140;
@@ -1209,12 +1349,15 @@ function setupStickyFooterVisibility() {
 
   window.__commitTrackerStickyHandler = updateStickyFooter;
 
-  window.addEventListener("scroll", window.__commitTrackerStickyHandler, { passive: true });
+  window.addEventListener("scroll", window.__commitTrackerStickyHandler, {
+    passive: true,
+  });
   window.addEventListener("resize", window.__commitTrackerStickyHandler);
 }
 
 feedEl.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-filter-type]");
+
   if (!button) return;
 
   const type = button.dataset.filterType;
@@ -1269,9 +1412,7 @@ releaseVersionListEl?.addEventListener("click", (event) => {
 
     fetch(`${API_BASE}/api/releases/${releaseId}`, {
       method: "DELETE",
-      headers: {
-        "x-api-key": getUploadKey(),
-      },
+      headers: getAuthHeaders(),
     })
       .then(async (res) => {
         if (!res.ok) {
@@ -1280,8 +1421,7 @@ releaseVersionListEl?.addEventListener("click", (event) => {
 
         await loadReleasesForSelectedRepo();
 
-        releasePreviewEl.innerHTML =
-          "Select a version to preview patch notes.";
+        releasePreviewEl.innerHTML = "Select a version to preview patch notes.";
       })
       .catch((err) => {
         console.error(err);
@@ -1292,9 +1432,12 @@ releaseVersionListEl?.addEventListener("click", (event) => {
   }
 
   const button = event.target.closest("[data-release-id]");
+
   if (!button) return;
 
-  const release = releases.find((item) => String(item.id) === String(button.dataset.releaseId));
+  const release = releases.find(
+    (item) => String(item.id) === String(button.dataset.releaseId)
+  );
 
   if (!release) return;
 
@@ -1303,6 +1446,7 @@ releaseVersionListEl?.addEventListener("click", (event) => {
 
 activeFiltersEl.addEventListener("click", async (event) => {
   const button = event.target.closest("[data-clear-filter]");
+
   if (!button) return;
 
   const type = button.dataset.clearFilter;
@@ -1365,22 +1509,20 @@ nextPageBtn.addEventListener("click", async () => {
 commitsTabBtn?.addEventListener("click", () => {
   commitsTabBtn.classList.add("active");
   branchesTabBtn.classList.remove("active");
+  releasesTabBtn.classList.remove("active");
 
   commitsPanelEl.classList.remove("hidden");
   branchesPanelEl.classList.add("hidden");
-
-  releasesTabBtn.classList.remove("active");
   releasesPanelEl.classList.add("hidden");
 });
 
 branchesTabBtn?.addEventListener("click", () => {
   branchesTabBtn.classList.add("active");
   commitsTabBtn.classList.remove("active");
+  releasesTabBtn.classList.remove("active");
 
   branchesPanelEl.classList.remove("hidden");
   commitsPanelEl.classList.add("hidden");
-
-  releasesTabBtn.classList.remove("active");
   releasesPanelEl.classList.add("hidden");
 
   renderBranchesTree();
@@ -1404,11 +1546,11 @@ releasesTabBtn?.addEventListener("click", async () => {
   }
 });
 
-
 (async function init() {
   readStateFromUrl();
 
   renderAdminStatus();
+
   try {
     await loadData();
     connectStream();

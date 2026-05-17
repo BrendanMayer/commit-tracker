@@ -1,5 +1,8 @@
 # Commit Tracker
 
+> This repository contains the public frontend and documentation for Commit Tracker.
+> The backend service remains private.
+
 A lightweight real-time GitHub commit dashboard inspired by Facepunch's internal development tracker:
 
 ```txt

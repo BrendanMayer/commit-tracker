@@ -1002,6 +1002,65 @@ button:disabled {
   display: none;
 }
 
+.contributor-card {
+  width: min(720px, calc(100% - 32px));
+}
+
+.contributor-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.contributor-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.mini-stat {
+  padding: 14px;
+  border-radius: 14px;
+  background: #151b1f;
+  border: 1px solid var(--border);
+}
+
+.mini-stat strong {
+  display: block;
+  font-size: 1.5rem;
+  color: var(--green-2);
+}
+
+.mini-stat span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.contributor-recent h4 {
+  margin: 18px 0 10px;
+}
+
+.contributor-commit {
+  padding: 12px;
+  border-radius: 12px;
+  background: #151b1f;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.contributor-commit strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.contributor-commit span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 @media (max-width: 800px) {
   .stats-row {
     grid-template-columns: 1fr;

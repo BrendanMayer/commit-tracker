@@ -34,6 +34,12 @@ const adminKeyInputEl = document.getElementById("admin-key-input");
 const saveAdminKeyBtn = document.getElementById("save-admin-key-btn");
 const cancelAdminKeyBtn = document.getElementById("cancel-admin-key-btn");
 const toastEl = document.getElementById("toast");
+const contributorModalEl = document.getElementById("contributor-modal");
+const contributorTitleEl = document.getElementById("contributor-title");
+const contributorSubtitleEl = document.getElementById("contributor-subtitle");
+const contributorStatsEl = document.getElementById("contributor-stats");
+const contributorRecentEl = document.getElementById("contributor-recent");
+const closeContributorBtn = document.getElementById("close-contributor-btn");
 
 
 const PAGE_SIZE = 20;
@@ -849,6 +855,78 @@ async function attachVideoToCommit(sha, uploaded) {
   return res.json();
 }
 
+function getContributorName(commit) {
+  return (
+    commit.contributor ||
+    commit.sender_login ||
+    commit.author_name ||
+    commit.author_email ||
+    "Unknown"
+  );
+}
+
+function openContributorProfile(name) {
+  const personCommits = commits.filter(
+    (commit) => getContributorName(commit) === name
+  );
+
+  const repos = new Set(personCommits.map((commit) => commit.repo_full_name).filter(Boolean));
+  const branches = new Set(personCommits.map((commit) => commit.branch).filter(Boolean));
+
+  const tagCounts = {};
+
+  personCommits.forEach((commit) => {
+    getCommitTags(commit).forEach((tag) => {
+      tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    });
+  });
+
+  contributorTitleEl.textContent = name;
+  contributorSubtitleEl.textContent = `${personCommits.length} commit${personCommits.length === 1 ? "" : "s"} in the current view`;
+
+  contributorStatsEl.innerHTML = `
+    <div class="mini-stat">
+      <strong>${formatNumber(personCommits.length)}</strong>
+      <span>Commits</span>
+    </div>
+
+    <div class="mini-stat">
+      <strong>${formatNumber(repos.size)}</strong>
+      <span>Repos</span>
+    </div>
+
+    <div class="mini-stat">
+      <strong>${formatNumber(branches.size)}</strong>
+      <span>Branches</span>
+    </div>
+  `;
+
+  const tagHtml = Object.entries(tagCounts)
+    .map(([tag, count]) => `<span class="tag tag-${escapeHtml(tag)}">#${escapeHtml(tag)} × ${count}</span>`)
+    .join("");
+
+  const recentHtml = personCommits.slice(0, 8)
+    .map(
+      (commit) => `
+        <div class="contributor-commit">
+          <strong>${escapeHtml(commit.message)}</strong>
+          <span>${escapeHtml(commit.repo_full_name)} · ${escapeHtml(commit.branch)} · ${timeAgo(commit.timestamp)}</span>
+        </div>
+      `
+    )
+    .join("");
+
+  contributorRecentEl.innerHTML = `
+    <h4>Tag mix</h4>
+    <div class="commit-tags">${tagHtml || `<span class="muted-inline">No tags</span>`}</div>
+
+    <h4>Recent commits</h4>
+    ${recentHtml || `<div class="empty">No commits found.</div>`}
+  `;
+
+  contributorModalEl.classList.remove("hidden");
+}
+
 feedEl.addEventListener("dragover", (event) => {
   const card = event.target.closest(".commit-card");
 
@@ -931,6 +1009,16 @@ feedEl.addEventListener("click", async (event) => {
   } catch (err) {
     console.error(err);
     showToast("Failed to remove video.", "error");
+  }
+});
+
+closeContributorBtn?.addEventListener("click", () => {
+  contributorModalEl.classList.add("hidden");
+});
+
+contributorModalEl?.addEventListener("click", (event) => {
+  if (event.target === contributorModalEl) {
+    contributorModalEl.classList.add("hidden");
   }
 });
 
@@ -1131,6 +1219,11 @@ feedEl.addEventListener("click", async (event) => {
 
   const type = button.dataset.filterType;
   const value = button.dataset.filterValue;
+
+  if (type === "contributor") {
+    openContributorProfile(value);
+    return;
+  }
 
   try {
     await setFilter(type, value);

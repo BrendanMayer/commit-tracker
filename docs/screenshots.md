@@ -2,22 +2,22 @@
 
 ## Live Commit Feed
 
-![Feed](./screenshots/feed.png)
+![Feed](../screenshots/feed.png)
 
 ---
 
 ## Branch Visualization
 
-![Branches](./screenshots/branches.png)
+![Branches](../screenshots/branches.png)
 
 ---
 
 ## Release Notes
 
-![Releases](./screenshots/releases.png)
+![Releases](../screenshots/releases.png)
 
 ---
 
 ## Contributor Drilldowns
 
-![Contributor](./screenshots/contributor.png)
+![Contributor](../screenshots/contributor.png)

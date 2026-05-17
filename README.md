@@ -346,8 +346,13 @@ Potential future additions:
 
 ---
 
-# License
+# Documentation
 
-This project is intended for personal use and experimentation.
-
-Feel free to modify or build upon it.
+| File | Description |
+|---|---|
+| CONTRIBUTING.md | Contribution guidelines |
+| docs/frontend-setup.md | Frontend setup |
+| docs/webhook-setup.md | GitHub webhook setup |
+| docs/api-overview.md | API architecture overview |
+| docs/roadmap.md | Planned features |
+| docs/screenshots.md | UI previews |
